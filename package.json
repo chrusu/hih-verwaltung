@@ -6,21 +6,29 @@
   "type": "module",
   "scripts": {
     "start": "node src/cli.js",
+    "interactive": "node hih.js",
+    "menu": "node hih.js",
     "dev": "node --watch src/cli.js",
     "test": "node test/test.js"
   },
   "bin": {
     "hih": "./src/cli.js"
   },
-  "keywords": ["verwaltung", "einzelfirma", "cli", "dateibasiert"],
+  "keywords": [
+    "verwaltung",
+    "einzelfirma",
+    "cli",
+    "dateibasiert"
+  ],
   "author": "Tobias Hinderling",
   "license": "MIT",
   "dependencies": {
+    "chalk": "^5.6.2",
     "commander": "^11.1.0",
     "csv-parser": "^3.0.0",
     "csv-writer": "^1.6.0",
-    "nanoid": "^5.0.4",
-    "chalk": "^5.3.0"
+    "inquirer": "^12.9.6",
+    "nanoid": "^5.0.4"
   },
   "engines": {
     "node": ">=16.0.0"

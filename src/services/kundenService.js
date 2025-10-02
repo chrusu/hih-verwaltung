@@ -134,4 +134,48 @@ export class KundenService {
     
     return null;
   }
+
+  /**
+   * Aktualisiert einen Kunden
+   */
+  async updateKunde(kundeIdentifier, updates) {
+    const kunde = await this.fileManager.findKunde(kundeIdentifier);
+    if (!kunde) {
+      throw new Error(`Kunde '${kundeIdentifier}' nicht gefunden`);
+    }
+
+    // Daten aktualisieren
+    const updatedKunde = new Kunde({
+      ...kunde,
+      ...updates,
+      id: kunde.id, // ID nie überschreiben
+      verzeichnis: kunde.verzeichnis, // Verzeichnis nie überschreiben
+      erstellt: kunde.erstellt // Erstellungsdatum nie überschreiben
+    });
+
+    // Datei aktualisieren
+    const filePath = path.join(this.basePath, 'kunden', kunde.verzeichnis, 'kunde.md');
+    const content = updatedKunde.toMarkdown();
+    await this.fileManager.writeMarkdownFile(filePath, content);
+
+    return updatedKunde;
+  }
+
+  /**
+   * Löscht einen Kunden
+   */
+  async deleteKunde(kundeIdentifier) {
+    const kunde = await this.fileManager.findKunde(kundeIdentifier);
+    if (!kunde) {
+      throw new Error(`Kunde '${kundeIdentifier}' nicht gefunden`);
+    }
+
+    const kundenDir = path.join(this.basePath, 'kunden', kunde.verzeichnis);
+    
+    // Ganzes Verzeichnis löschen
+    const fs = await import('fs/promises');
+    await fs.rm(kundenDir, { recursive: true, force: true });
+    
+    return true;
+  }
 }

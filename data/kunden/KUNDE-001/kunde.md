@@ -2,6 +2,8 @@
 id: KD-lK0yqbSR
 nummer: KUNDE-001
 name: "Muster AG"
+email: "test2@muster.ch"
+telefon: "044 123 45 67"
 typ: geschäft
 adresse:
   strasse: "Musterstrasse 123"
@@ -16,6 +18,11 @@ aktiv: true
 
 **Kundennummer:** KUNDE-001  
 **Typ:** geschäft
+
+## Kontakt
+
+**Email:** test2@muster.ch  
+**Telefon:** 044 123 45 67
 
 ## Adresse
 

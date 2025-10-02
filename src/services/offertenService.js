@@ -186,4 +186,153 @@ export class OffertenService {
 
     return { ...offerte, status: neuerStatus };
   }
+
+  /**
+   * Aktualisiert eine Offerte
+   */
+  async updateOfferte(offerteIdentifier, updates) {
+    const offerte = await this.fileManager.findOfferte(offerteIdentifier);
+    if (!offerte) {
+      throw new Error(`Offerte '${offerteIdentifier}' nicht gefunden`);
+    }
+
+    // Vollständige Offerte laden
+    const vollOfferte = await this.getOfferte(offerteIdentifier);
+    
+    // Daten aktualisieren
+    const updatedOfferte = new Offerte({
+      ...vollOfferte,
+      ...updates,
+      id: vollOfferte.id, // ID nie überschreiben
+      nummer: vollOfferte.nummer, // Nummer nie überschreiben
+      verzeichnis: vollOfferte.verzeichnis, // Verzeichnis nie überschreiben
+      erstellt: vollOfferte.erstellt // Erstellungsdatum nie überschreiben
+    });
+
+    // Datei aktualisieren
+    const offertenPath = path.join(this.basePath, 'offerten', offerte.verzeichnis, 'offerte.md');
+    const content = updatedOfferte.toMarkdown();
+    await this.fileManager.writeMarkdownFile(offertenPath, content);
+
+    return updatedOfferte;
+  }
+
+  /**
+   * Löscht eine Offerte
+   */
+  async deleteOfferte(offerteIdentifier) {
+    const offerte = await this.fileManager.findOfferte(offerteIdentifier);
+    if (!offerte) {
+      throw new Error(`Offerte '${offerteIdentifier}' nicht gefunden`);
+    }
+
+    const offertenDir = path.join(this.basePath, 'offerten', offerte.verzeichnis);
+    
+    // Ganzes Verzeichnis löschen
+    const fs = await import('fs/promises');
+    await fs.rm(offertenDir, { recursive: true, force: true });
+    
+    return true;
+  }
+
+  /**
+   * Aktualisiert eine Position
+   */
+  async updatePosition(offerteIdentifier, positionId, updates) {
+    const vollOfferte = await this.getOfferte(offerteIdentifier);
+    if (!vollOfferte) {
+      throw new Error(`Offerte '${offerteIdentifier}' nicht gefunden`);
+    }
+
+    // Position finden und aktualisieren
+    const positionIndex = vollOfferte.positionen.findIndex(p => p.id === positionId);
+    if (positionIndex === -1) {
+      throw new Error(`Position '${positionId}' nicht gefunden`);
+    }
+
+    // Position aktualisieren
+    vollOfferte.positionen[positionIndex] = new Offertposition({
+      ...vollOfferte.positionen[positionIndex],
+      ...updates,
+      id: positionId, // ID nie überschreiben
+      offerteId: vollOfferte.id // OfferteId nie überschreiben
+    });
+
+    // Gesamtsumme neu berechnen
+    this.berechneGesamtsumme(vollOfferte);
+
+    // Speichern
+    await this.saveOfferte(vollOfferte);
+    
+    return vollOfferte.positionen[positionIndex];
+  }
+
+  /**
+   * Löscht eine Position
+   */
+  async deletePosition(offerteIdentifier, positionId) {
+    const vollOfferte = await this.getOfferte(offerteIdentifier);
+    if (!vollOfferte) {
+      throw new Error(`Offerte '${offerteIdentifier}' nicht gefunden`);
+    }
+
+    // Position finden und entfernen
+    const positionIndex = vollOfferte.positionen.findIndex(p => p.id === positionId);
+    if (positionIndex === -1) {
+      throw new Error(`Position '${positionId}' nicht gefunden`);
+    }
+
+    vollOfferte.positionen.splice(positionIndex, 1);
+
+    // Gesamtsumme neu berechnen
+    this.berechneGesamtsumme(vollOfferte);
+
+    // Speichern
+    await this.saveOfferte(vollOfferte);
+    
+    return true;
+  }
+
+  /**
+   * Berechnet die Gesamtsumme einer Offerte
+   */
+  berechneGesamtsumme(offerte) {
+    let gesamtsumme = 0;
+    
+    // Alle Positionen durchrechnen
+    if (offerte.positionen) {
+      for (const position of offerte.positionen) {
+        if (position.beschreibung && position.menge && position.einzelpreis) {
+          const positionTotal = position.menge * position.einzelpreis * (1 - (position.rabatt || 0) / 100);
+          gesamtsumme += positionTotal;
+        }
+      }
+    }
+    
+    // MwSt berechnen
+    const mwstSatz = offerte.mwstSatz || 7.7;
+    const mwstBetrag = gesamtsumme * (mwstSatz / 100);
+    const gesamtBrutto = gesamtsumme + mwstBetrag;
+    
+    // Werte in Offerte setzen
+    offerte.gesamtsumme = Math.round(gesamtsumme * 100) / 100;
+    offerte.mwstBetrag = Math.round(mwstBetrag * 100) / 100;
+    offerte.gesamtBrutto = Math.round(gesamtBrutto * 100) / 100;
+    
+    return offerte;
+  }
+
+  /**
+   * Speichert eine Offerte (Hilfsmethode)
+   */
+  async saveOfferte(offerte) {
+    const offertenPath = path.join(this.basePath, 'offerten', offerte.verzeichnis, 'offerte.md');
+    const content = offerte.toMarkdown();
+    await this.fileManager.writeMarkdownFile(offertenPath, content);
+
+    // Positionen CSV aktualisieren
+    const positionenPath = path.join(this.basePath, 'offerten', offerte.verzeichnis, 'positionen.csv');
+    const positionenData = offerte.positionen.map(p => p.toCsvRow());
+    await this.fileManager.writeCsvFile(positionenPath, positionenData);
+  }
 }

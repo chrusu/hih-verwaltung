@@ -73,12 +73,36 @@ export class FileManager {
   parseFrontmatter(frontmatter) {
     const lines = frontmatter.split('\n');
     const metadata = {};
+    let currentKey = null;
+    let currentObject = null;
     
     for (const line of lines) {
-      const match = line.match(/^(\w+):\s*(.*)$/);
-      if (match) {
-        const [, key, value] = match;
-        metadata[key] = this.parseYamlValue(value);
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      
+      // Hauptschlüssel mit Wert (unterstützt auch Umlaute)
+      const mainMatch = line.match(/^([a-zA-ZäöüÄÖÜß]+):\s*(.*)$/);
+      if (mainMatch && !line.startsWith(' ')) {
+        const [, key, value] = mainMatch;
+        currentKey = key;
+        
+        if (value.trim()) {
+          // Hat direkt einen Wert
+          metadata[key] = this.parseYamlValue(value);
+          currentObject = null;
+        } else {
+          // Beginnt ein verschachteltes Objekt
+          metadata[key] = {};
+          currentObject = metadata[key];
+        }
+      }
+      // Verschachtelte Eigenschaften
+      else if (line.startsWith('  ') && currentObject) {
+        const nestedMatch = line.match(/^\s+([a-zA-ZäöüÄÖÜß]+):\s*(.*)$/);
+        if (nestedMatch) {
+          const [, key, value] = nestedMatch;
+          currentObject[key] = this.parseYamlValue(value);
+        }
       }
     }
     

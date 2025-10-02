@@ -10,6 +10,8 @@ export class Kunde {
     this.id = data.id || '';
     this.nummer = data.nummer || '';
     this.name = data.name || '';
+    this.email = data.email || '';
+    this.telefon = data.telefon || '';
     this.typ = data.typ || 'privat'; // privat, geschäft
     this.adresse = {
       strasse: data.adresse?.strasse || '',
@@ -23,18 +25,32 @@ export class Kunde {
   }
 
   toMarkdown() {
+    const yamlParts = [
+      `id: ${this.id}`,
+      `nummer: ${this.nummer}`,
+      `name: "${this.name}"`
+    ];
+    
+    if (this.email) yamlParts.push(`email: "${this.email}"`);
+    if (this.telefon) yamlParts.push(`telefon: "${this.telefon}"`);
+    
+    yamlParts.push(
+      `typ: ${this.typ}`,
+      `adresse:`,
+      `  strasse: "${this.adresse.strasse}"`,
+      `  plz: "${this.adresse.plz}"`,
+      `  ort: "${this.adresse.ort}"`,
+      `  land: "${this.adresse.land}"`,
+      `erstellt: ${this.erstellt}`,
+      `aktiv: ${this.aktiv}`
+    );
+
+    const kontaktInfo = [];
+    if (this.email) kontaktInfo.push(`**Email:** ${this.email}`);
+    if (this.telefon) kontaktInfo.push(`**Telefon:** ${this.telefon}`);
+    
     return `---
-id: ${this.id}
-nummer: ${this.nummer}
-name: "${this.name}"
-typ: ${this.typ}
-adresse:
-  strasse: "${this.adresse.strasse}"
-  plz: "${this.adresse.plz}"
-  ort: "${this.adresse.ort}"
-  land: "${this.adresse.land}"
-erstellt: ${this.erstellt}
-aktiv: ${this.aktiv}
+${yamlParts.join('\n')}
 ---
 
 # ${this.name}
@@ -42,7 +58,7 @@ aktiv: ${this.aktiv}
 **Kundennummer:** ${this.nummer}  
 **Typ:** ${this.typ}
 
-## Adresse
+${kontaktInfo.length > 0 ? `## Kontakt\n\n${kontaktInfo.join('  \n')}\n\n` : ''}## Adresse
 
 ${this.adresse.strasse}  
 ${this.adresse.plz} ${this.adresse.ort}  
