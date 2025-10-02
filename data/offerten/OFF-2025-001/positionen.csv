@@ -1,0 +1,5 @@
+id,offerteId,position,beschreibung,menge,einheit,einzelpreis,rabatt,gesamtpreis,kategorie
+,,,,,,,,,
+POS-vz5mgy9e,OFF-crnlBGKE,1,Konzept und Design,40,Std,120,0,4800,Design
+POS-ulVDKN6G,OFF-crnlBGKE,2,Frontend Entwicklung,60,Std,100,0,6000,Entwicklung
+POS-8-QuRLo5,OFF-crnlBGKE,3,CMS Setup und Schulung,16,Std,90,0,1440,Schulung
