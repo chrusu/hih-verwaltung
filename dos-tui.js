@@ -136,8 +136,8 @@ class HIHTuiApp {
         this.screen.key(['f3'], () => this.showOfferten());
         this.screen.key(['f4'], () => this.showRechnungen());
         this.screen.key(['f5'], () => this.refreshData());
-        this.screen.key(['f6'], () => this.exportMenu());
-        this.screen.key(['f7'], () => this.gitStatus());
+        this.screen.key(['f6'], () => this.handleExport());
+        this.screen.key(['f7'], () => this.handleGit());
         this.screen.key(['f8'], () => this.showInfo());
         this.screen.key(['f10'], () => process.exit(0));
 
@@ -161,11 +161,17 @@ class HIHTuiApp {
 
     async loadData() {
         try {
-            this.data.kunden = await this.kundenService.alleKunden();
-            this.data.offerten = await this.offertenService.alleOfferten();
+            console.log('🔄 Lade Daten...');
+            this.data.kunden = await this.kundenService.listKunden();
+            this.data.offerten = await this.offertenService.listOfferten();
+            console.log(`✅ Geladen: ${this.data.kunden.length} Kunden, ${this.data.offerten.length} Offerten`);
             this.updateStatus(`Daten geladen: ${this.data.kunden.length} Kunden, ${this.data.offerten.length} Offerten`);
         } catch (error) {
+            console.error('❌ Fehler beim Laden:', error);
             this.updateStatus(`Fehler beim Laden: ${error.message}`, 'error');
+            // Fallback für leere Daten
+            this.data.kunden = this.data.kunden || [];
+            this.data.offerten = this.data.offerten || [];
         }
     }
 
@@ -615,27 +621,27 @@ class HIHTuiApp {
 
     // === Action Methoden ===
     
-    newItem() {
+    async newItem() {
         if (this.currentView === 'kunden') {
-            this.updateStatus('Neue Kunde-Erstellung (Feature in Entwicklung)', 'info');
+            await this.createNewKunde();
         } else if (this.currentView === 'offerten') {
-            this.updateStatus('Neue Offerte-Erstellung (Feature in Entwicklung)', 'info');
+            await this.createNewOfferte();
         }
     }
 
-    editItem() {
+    async editItem() {
         if (this.currentView === 'kunden' && this.data.kunden[this.selectedIndex]) {
-            this.updateStatus('Kunde-Bearbeitung (Feature in Entwicklung)', 'info');
+            await this.editKunde(this.data.kunden[this.selectedIndex]);
         } else if (this.currentView === 'offerten' && this.data.offerten[this.selectedIndex]) {
-            this.updateStatus('Offerte-Bearbeitung (Feature in Entwicklung)', 'info');
+            await this.editOfferte(this.data.offerten[this.selectedIndex]);
         }
     }
 
-    deleteItem() {
+    async deleteItem() {
         if (this.currentView === 'kunden' && this.data.kunden[this.selectedIndex]) {
-            this.updateStatus('Kunde-Löschung (Feature in Entwicklung)', 'info');
+            await this.deleteKunde(this.data.kunden[this.selectedIndex]);
         } else if (this.currentView === 'offerten' && this.data.offerten[this.selectedIndex]) {
-            this.updateStatus('Offerte-Löschung (Feature in Entwicklung)', 'info');
+            await this.deleteOfferte(this.data.offerten[this.selectedIndex]);
         }
     }
 
@@ -711,6 +717,876 @@ ${this.data.offerten
     getKundeName(kundeId) {
         const kunde = this.data.kunden.find(k => k.id === kundeId);
         return kunde ? kunde.name : 'Unbekannt';
+    }
+
+    // === CRUD-Implementierungen ===
+
+    async createNewKunde() {
+        this.updateStatus('Neuen Kunden erstellen...', 'info');
+        
+        try {
+            // Einfacher Prompt-basierter Ansatz für bessere Eingabe
+            const kundenDaten = await this.promptKundenDaten();
+            
+            if (kundenDaten) {
+                // Kunde erstellen
+                const neuerKunde = await this.kundenService.createKunde(kundenDaten);
+                
+                this.updateStatus(`Kunde "${neuerKunde.name}" erfolgreich erstellt`, 'success');
+                await this.loadData();
+                this.showKunden();
+            } else {
+                this.updateStatus('Kunden-Erstellung abgebrochen', 'info');
+                this.showKunden();
+            }
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Erstellen: ${error.message}`, 'error');
+            this.showKunden();
+        }
+    }
+
+    async promptKundenDaten(existingData = null) {
+        return new Promise((resolve) => {
+            // Eingabe-Dialog erstellen
+            const form = blessed.form({
+                parent: this.screen,
+                top: 'center',
+                left: 'center',
+                width: 60,
+                height: 20,
+                border: {
+                    type: 'line',
+                    fg: 'cyan'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'blue'
+                },
+                keys: true,
+                vi: true
+            });
+
+            const title = blessed.box({
+                parent: form,
+                top: 0,
+                left: 'center',
+                width: '100%-4',
+                height: 1,
+                content: '{center}' + (existingData ? 'KUNDE BEARBEITEN' : 'NEUER KUNDE') + '{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow',
+                    bg: 'blue',
+                    bold: true
+                }
+            });
+
+            let formData = {
+                name: existingData?.name || '',
+                email: existingData?.email || '',
+                telefon: existingData?.telefon || ''
+            };
+
+            // Eingabefelder als einfache Textanzeige + Input-Simulation
+            const nameBox = blessed.box({
+                parent: form,
+                top: 3,
+                left: 2,
+                width: '100%-4',
+                height: 3,
+                label: 'Name:',
+                border: { type: 'line' },
+                style: { fg: 'white', bg: 'black' },
+                content: formData.name
+            });
+
+            const emailBox = blessed.box({
+                parent: form,
+                top: 7,
+                left: 2,
+                width: '100%-4',
+                height: 3,
+                label: 'Email:',
+                border: { type: 'line' },
+                style: { fg: 'white', bg: 'black' },
+                content: formData.email
+            });
+
+            const telefonBox = blessed.box({
+                parent: form,
+                top: 11,
+                left: 2,
+                width: '100%-4',
+                height: 3,
+                label: 'Telefon:',
+                border: { type: 'line' },
+                style: { fg: 'white', bg: 'black' },
+                content: formData.telefon
+            });
+
+            const instructions = blessed.box({
+                parent: form,
+                bottom: 1,
+                left: 'center',
+                width: 50,
+                height: 2,
+                content: '{center}1=Name 2=Email 3=Telefon ENTER=Speichern ESC=Abbrechen{/center}',
+                tags: true,
+                style: { fg: 'yellow' }
+            });
+
+            form.focus();
+            this.render();
+
+            // Event-Handler mit vereinfachter Eingabe
+            form.key(['1'], async () => {
+                const name = await this.simplePrompt('Name eingeben:', formData.name);
+                if (name !== null) {
+                    formData.name = name;
+                    nameBox.setContent(name);
+                    this.render();
+                }
+            });
+
+            form.key(['2'], async () => {
+                const email = await this.simplePrompt('Email eingeben:', formData.email);
+                if (email !== null) {
+                    formData.email = email;
+                    emailBox.setContent(email);
+                    this.render();
+                }
+            });
+
+            form.key(['3'], async () => {
+                const telefon = await this.simplePrompt('Telefon eingeben:', formData.telefon);
+                if (telefon !== null) {
+                    formData.telefon = telefon;
+                    telefonBox.setContent(telefon);
+                    this.render();
+                }
+            });
+
+            form.key(['enter'], () => {
+                if (formData.name.trim()) {
+                    form.destroy();
+                    resolve(formData);
+                } else {
+                    // Name erforderlich - Hinweis anzeigen
+                    instructions.setContent('{center}{red-fg}Name ist erforderlich!{/red-fg} 1=Name eingeben{/center}');
+                    this.render();
+                }
+            });
+
+            form.key(['escape'], () => {
+                form.destroy();
+                resolve(null);
+            });
+        });
+    }
+
+    async simplePrompt(message, defaultValue = '') {
+        return new Promise((resolve) => {
+            const promptBox = blessed.question({
+                parent: this.screen,
+                top: 'center',
+                left: 'center',
+                width: 60,
+                height: 8,
+                border: { type: 'line', fg: 'green' },
+                style: { fg: 'white', bg: 'black' },
+                keys: true,
+                inputOnFocus: true
+            });
+
+            const label = blessed.box({
+                parent: promptBox,
+                top: 1,
+                left: 2,
+                width: '100%-4',
+                height: 1,
+                content: message,
+                style: { fg: 'yellow', bold: true }
+            });
+
+            const input = blessed.textbox({
+                parent: promptBox,
+                top: 3,
+                left: 2,
+                width: '100%-4',
+                height: 3,
+                border: { type: 'line' },
+                style: { 
+                    fg: 'white', 
+                    bg: 'black',
+                    focus: { fg: 'black', bg: 'white' }
+                },
+                keys: true,
+                inputOnFocus: true,
+                value: defaultValue
+            });
+
+            const instructions = blessed.box({
+                parent: promptBox,
+                bottom: 1,
+                left: 'center',
+                width: 30,
+                height: 1,
+                content: '{center}ENTER=OK ESC=Abbrechen{/center}',
+                tags: true,
+                style: { fg: 'cyan' }
+            });
+
+            input.focus();
+            this.render();
+
+            promptBox.key(['enter'], () => {
+                const value = input.value || '';
+                promptBox.destroy();
+                this.render();
+                resolve(value);
+            });
+
+            promptBox.key(['escape'], () => {
+                promptBox.destroy();
+                this.render();
+                resolve(null);
+            });
+
+            input.on('submit', (value) => {
+                promptBox.destroy();
+                this.render();
+                resolve(value || '');
+            });
+        });
+    }
+
+    async editKunde(kunde) {
+        this.updateStatus(`Bearbeite Kunde: ${kunde.name}`, 'info');
+        
+        try {
+            const form = blessed.form({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 60,
+                height: 16,
+                border: {
+                    type: 'line',
+                    fg: 'cyan'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'blue'
+                },
+                keys: true,
+                vi: true
+            });
+
+            const title = blessed.box({
+                parent: form,
+                top: 0,
+                left: 'center',
+                width: '100%-4',
+                height: 1,
+                content: '{center}KUNDE BEARBEITEN{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow',
+                    bg: 'blue',
+                    bold: true
+                }
+            });
+
+            const nameInput = blessed.textbox({
+                parent: form,
+                name: 'name',
+                top: 3,
+                left: 2,
+                width: '100%-4',
+                height: 1,
+                label: 'Name:',
+                value: kunde.name || '',
+                border: {
+                    type: 'line'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'black'
+                },
+                inputOnFocus: true
+            });
+
+            const emailInput = blessed.textbox({
+                parent: form,
+                name: 'email',
+                top: 6,
+                left: 2,
+                width: '100%-4',
+                height: 1,
+                label: 'Email:',
+                value: kunde.email || '',
+                border: {
+                    type: 'line'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'black'
+                },
+                inputOnFocus: true
+            });
+
+            const telefonInput = blessed.textbox({
+                parent: form,
+                name: 'telefon',
+                top: 9,
+                left: 2,
+                width: '100%-4',
+                height: 1,
+                label: 'Telefon:',
+                value: kunde.telefon || '',
+                border: {
+                    type: 'line'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'black'
+                },
+                inputOnFocus: true
+            });
+
+            const buttons = blessed.box({
+                parent: form,
+                bottom: 1,
+                left: 'center',
+                width: 40,
+                height: 1,
+                content: '{center}ENTER=Speichern  ESC=Abbrechen{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow'
+                }
+            });
+
+            this.screen.append(form);
+            nameInput.focus();
+            this.render();
+
+            const result = await new Promise((resolve) => {
+                form.key('enter', async () => {
+                    const name = nameInput.getValue();
+                    if (name.trim()) {
+                        resolve({
+                            name: name.trim(),
+                            email: emailInput.getValue().trim(),
+                            telefon: telefonInput.getValue().trim()
+                        });
+                    }
+                });
+
+                form.key('escape', () => {
+                    resolve(null);
+                });
+            });
+
+            form.destroy();
+            this.render();
+
+            if (result) {
+                // Kunde aktualisieren
+                await this.kundenService.kundeAktualisieren(kunde.id, result);
+                this.updateStatus(`Kunde "${result.name}" erfolgreich aktualisiert`, 'success');
+                await this.loadData();
+                this.showKunden();
+            } else {
+                this.updateStatus('Bearbeitung abgebrochen', 'info');
+                this.showKunden();
+            }
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Bearbeiten: ${error.message}`, 'error');
+            this.showKunden();
+        }
+    }
+
+    async deleteKunde(kunde) {
+        this.updateStatus(`Lösche Kunde: ${kunde.name}`, 'info');
+        
+        try {
+            // Bestätigungs-Dialog
+            const confirmBox = blessed.question({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 50,
+                height: 8,
+                border: {
+                    type: 'line',
+                    fg: 'red'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'red'
+                },
+                keys: true,
+                vi: true
+            });
+
+            const message = blessed.box({
+                parent: confirmBox,
+                top: 1,
+                left: 'center',
+                width: '100%-4',
+                height: 3,
+                content: `{center}KUNDE LÖSCHEN?{/center}\\n\\n{center}"${kunde.name}"\\nwirklich löschen?{/center}`,
+                tags: true,
+                style: {
+                    fg: 'white',
+                    bg: 'red',
+                    bold: true
+                }
+            });
+
+            const buttons = blessed.box({
+                parent: confirmBox,
+                bottom: 1,
+                left: 'center',
+                width: 40,
+                height: 1,
+                content: '{center}J=Ja löschen  ESC=Abbrechen{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow'
+                }
+            });
+
+            this.screen.append(confirmBox);
+            confirmBox.focus();
+            this.render();
+
+            const confirmed = await new Promise((resolve) => {
+                confirmBox.key('j', () => resolve(true));
+                confirmBox.key('escape', () => resolve(false));
+            });
+
+            confirmBox.destroy();
+            this.render();
+
+            if (confirmed) {
+                await this.kundenService.deleteKunde(kunde.id);
+                this.updateStatus(`Kunde "${kunde.name}" erfolgreich gelöscht`, 'success');
+                await this.loadData();
+                this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+                this.showKunden();
+            } else {
+                this.updateStatus('Löschung abgebrochen', 'info');
+                this.showKunden();
+            }
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Löschen: ${error.message}`, 'error');
+            this.showKunden();
+        }
+    }
+
+    async createNewOfferte() {
+        this.updateStatus('Neue Offerte erstellen...', 'info');
+        
+        if (this.data.kunden.length === 0) {
+            this.updateStatus('Keine Kunden vorhanden! Erst Kunden erstellen.', 'error');
+            return;
+        }
+
+        try {
+            // Kunden-Auswahl Dialog
+            const kundenList = blessed.list({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 60,
+                height: Math.min(this.data.kunden.length + 6, 20),
+                border: {
+                    type: 'line',
+                    fg: 'cyan'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'blue',
+                    selected: {
+                        fg: 'black',
+                        bg: 'yellow'
+                    }
+                },
+                keys: true,
+                vi: true,
+                items: this.data.kunden.map(k => `${k.name} (${k.email || 'keine Email'})`)
+            });
+
+            const title = blessed.box({
+                parent: kundenList,
+                top: -1,
+                left: 'center',
+                width: '100%-4',
+                height: 1,
+                content: '{center}KUNDE AUSWÄHLEN{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow',
+                    bg: 'blue',
+                    bold: true
+                }
+            });
+
+            this.screen.append(kundenList);
+            kundenList.focus();
+            this.render();
+
+            const selectedKunde = await new Promise((resolve) => {
+                kundenList.key('enter', () => {
+                    const index = kundenList.selected;
+                    resolve(this.data.kunden[index]);
+                });
+
+                kundenList.key('escape', () => {
+                    resolve(null);
+                });
+            });
+
+            kundenList.destroy();
+            this.render();
+
+            if (selectedKunde) {
+                // Neue Offerte erstellen
+                const neueOfferte = await this.offertenService.createOfferte({
+                    kundeId: selectedKunde.id,
+                    titel: `Offerte für ${selectedKunde.name}`
+                });
+                
+                this.updateStatus(`Offerte "${neueOfferte.nummer}" erfolgreich erstellt`, 'success');
+                await this.loadData();
+                this.showOfferten();
+            } else {
+                this.updateStatus('Offerten-Erstellung abgebrochen', 'info');
+                this.showOfferten();
+            }
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Erstellen: ${error.message}`, 'error');
+            this.showOfferten();
+        }
+    }
+
+    async editOfferte(offerte) {
+        this.updateStatus(`Bearbeite Offerte: ${offerte.nummer}`, 'info');
+        
+        try {
+            // Detailansicht mit Bearbeitungsoptionen
+            const detailBox = blessed.box({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 70,
+                height: 20,
+                border: {
+                    type: 'line',
+                    fg: 'cyan'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'blue'
+                },
+                keys: true,
+                scrollable: true
+            });
+
+            const kunde = this.data.kunden.find(k => k.id === offerte.kundeId);
+            
+            const content = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        OFFERTE BEARBEITEN                                   ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  Nummer: ${offerte.nummer}                                                   ║
+║  Kunde: ${kunde ? kunde.name : 'Unbekannt'}                                  ║
+║  Datum: ${new Date(offerte.datum).toLocaleDateString('de-CH')}               ║
+║  Gültig bis: ${new Date(offerte.gültigBis).toLocaleDateString('de-CH')}       ║
+║  Status: ${offerte.status || 'Offen'}                                        ║
+║  Gesamtsumme: CHF ${(offerte.gesamtsumme || 0).toFixed(2)}                   ║
+║                                                                              ║
+║  Positionen: ${offerte.positionen ? offerte.positionen.length : 0}           ║
+║                                                                              ║
+║  Aktionen:                                                                   ║
+║  ────────                                                                    ║
+║  P = Positionen verwalten                                                    ║
+║  S = Status ändern                                                           ║
+║  F6 = PDF exportieren                                                        ║
+║  ESC = Zurück                                                                ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+            `;
+
+            detailBox.setContent(content);
+            this.screen.append(detailBox);
+            detailBox.focus();
+            this.render();
+
+            await new Promise((resolve) => {
+                detailBox.key('p', async () => {
+                    detailBox.destroy();
+                    await this.managePositionen(offerte);
+                    resolve();
+                });
+
+                detailBox.key('s', async () => {
+                    detailBox.destroy();
+                    await this.changeOfferteStatus(offerte);
+                    resolve();
+                });
+
+                detailBox.key('f6', async () => {
+                    detailBox.destroy();
+                    await this.exportPDF(offerte);
+                    resolve();
+                });
+
+                detailBox.key('escape', () => {
+                    detailBox.destroy();
+                    this.render();
+                    this.showOfferten();
+                    resolve();
+                });
+            });
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Bearbeiten: ${error.message}`, 'error');
+            this.showOfferten();
+        }
+    }
+
+    async deleteOfferte(offerte) {
+        this.updateStatus(`Lösche Offerte: ${offerte.nummer}`, 'info');
+        
+        try {
+            const confirmBox = blessed.question({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 50,
+                height: 8,
+                border: {
+                    type: 'line',
+                    fg: 'red'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'red'
+                },
+                keys: true,
+                vi: true
+            });
+
+            const message = blessed.box({
+                parent: confirmBox,
+                top: 1,
+                left: 'center',
+                width: '100%-4',
+                height: 3,
+                content: `{center}OFFERTE LÖSCHEN?{/center}\\n\\n{center}"${offerte.nummer}"\\nwirklich löschen?{/center}`,
+                tags: true,
+                style: {
+                    fg: 'white',
+                    bg: 'red',
+                    bold: true
+                }
+            });
+
+            const buttons = blessed.box({
+                parent: confirmBox,
+                bottom: 1,
+                left: 'center',
+                width: 40,
+                height: 1,
+                content: '{center}J=Ja löschen  ESC=Abbrechen{/center}',
+                tags: true,
+                style: {
+                    fg: 'yellow'
+                }
+            });
+
+            this.screen.append(confirmBox);
+            confirmBox.focus();
+            this.render();
+
+            const confirmed = await new Promise((resolve) => {
+                confirmBox.key('j', () => resolve(true));
+                confirmBox.key('escape', () => resolve(false));
+            });
+
+            confirmBox.destroy();
+            this.render();
+
+            if (confirmed) {
+                await this.offertenService.deleteOfferte(offerte.id);
+                this.updateStatus(`Offerte "${offerte.nummer}" erfolgreich gelöscht`, 'success');
+                await this.loadData();
+                this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+                this.showOfferten();
+            } else {
+                this.updateStatus('Löschung abgebrochen', 'info');
+                this.showOfferten();
+            }
+
+        } catch (error) {
+            this.updateStatus(`Fehler beim Löschen: ${error.message}`, 'error');
+            this.showOfferten();
+        }
+    }
+
+    async handleExport() {
+        if (this.currentView === 'offerten' && this.data.offerten[this.selectedIndex]) {
+            await this.exportPDF(this.data.offerten[this.selectedIndex]);
+        } else {
+            this.exportMenu();
+        }
+    }
+
+    async exportPDF(offerte) {
+        this.updateStatus('Exportiere PDF...', 'info');
+        
+        try {
+            const result = await this.pdfExportService.generatePdf(offerte);
+            this.updateStatus(`PDF erfolgreich erstellt: ${result.pdfPath}`, 'success');
+            
+            // Kurz anzeigen, dann zurück zur Liste
+            setTimeout(() => {
+                this.showOfferten();
+            }, 2000);
+            
+        } catch (error) {
+            this.updateStatus(`PDF-Export Fehler: ${error.message}`, 'error');
+            setTimeout(() => {
+                this.showOfferten();
+            }, 3000);
+        }
+    }
+
+    async handleGit() {
+        this.updateStatus('Git-Operationen...', 'info');
+        
+        try {
+            // Vereinfachte Git-Integration für DOS-TUI
+            const { spawn } = await import('child_process');
+            
+            const gitStatus = await new Promise((resolve) => {
+                const git = spawn('git', ['status', '--porcelain'], {
+                    cwd: process.cwd()
+                });
+                
+                let output = '';
+                git.stdout.on('data', (data) => {
+                    output += data.toString();
+                });
+                
+                git.on('close', (code) => {
+                    resolve(output);
+                });
+            });
+
+            if (gitStatus.trim()) {
+                this.updateStatus('Änderungen gefunden - Commit erstellen...', 'info');
+                
+                const gitAdd = spawn('git', ['add', '-A'], {
+                    cwd: process.cwd(),
+                    stdio: 'inherit'
+                });
+                
+                gitAdd.on('close', () => {
+                    const gitCommit = spawn('git', ['commit', '-m', 'DOS-TUI: Automatischer Commit'], {
+                        cwd: process.cwd(),
+                        stdio: 'inherit'
+                    });
+                    
+                    gitCommit.on('close', () => {
+                        this.updateStatus('Git-Commit erfolgreich erstellt', 'success');
+                    });
+                });
+                
+            } else {
+                this.updateStatus('Keine Änderungen für Git-Commit', 'info');
+            }
+            
+        } catch (error) {
+            this.updateStatus(`Git-Fehler: ${error.message}`, 'error');
+        }
+    }
+
+    async managePositionen(offerte) {
+        // Vereinfachte Positionsverwaltung für DOS-TUI
+        this.updateStatus(`Positionsverwaltung für ${offerte.nummer} (Feature in Entwicklung)`, 'info');
+        
+        setTimeout(() => {
+            this.showOfferten();
+        }, 2000);
+    }
+
+    async changeOfferteStatus(offerte) {
+        // Status-Änderung für Offerte
+        const statusOptions = ['Offen', 'Gesendet', 'Angenommen', 'Abgelehnt', 'Abgeschlossen'];
+        
+        try {
+            const statusList = blessed.list({
+                parent: this.contentArea,
+                top: 'center',
+                left: 'center',
+                width: 40,
+                height: statusOptions.length + 4,
+                border: {
+                    type: 'line',
+                    fg: 'cyan'
+                },
+                style: {
+                    fg: 'white',
+                    bg: 'blue',
+                    selected: {
+                        fg: 'black',
+                        bg: 'yellow'
+                    }
+                },
+                keys: true,
+                vi: true,
+                items: statusOptions
+            });
+
+            this.screen.append(statusList);
+            statusList.focus();
+            this.render();
+
+            const newStatus = await new Promise((resolve) => {
+                statusList.key('enter', () => {
+                    const index = statusList.selected;
+                    resolve(statusOptions[index]);
+                });
+
+                statusList.key('escape', () => {
+                    resolve(null);
+                });
+            });
+
+            statusList.destroy();
+            this.render();
+
+            if (newStatus && newStatus !== offerte.status) {
+                await this.offertenService.updateOfferte(offerte.id, { status: newStatus });
+                this.updateStatus(`Status geändert auf: ${newStatus}`, 'success');
+                await this.loadData();
+            }
+            
+            this.showOfferten();
+            
+        } catch (error) {
+            this.updateStatus(`Fehler beim Status ändern: ${error.message}`, 'error');
+            this.showOfferten();
+        }
     }
 
     // App starten
