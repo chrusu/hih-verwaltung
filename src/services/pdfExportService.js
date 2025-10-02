@@ -39,15 +39,44 @@ export class PdfExportService {
     const adresseMatch = content.match(/## Adresse\n(.*?)\n(.*?)\n/s);
     const telefonMatch = content.match(/## Telefonnummer\n(.*?)\n/);
     const emailMatch = content.match(/## Email\n(.*?)\n/);
+    const signaturMatch = content.match(/## Email-Signatur\n([\s\S]*?)(?=\n##|$)/);
     
     // Parse Meta-Daten
     const metaContent = metaDaten.content;
     const colorMatch = metaContent.match(/## Color\n(.*?)\n/);
     const fontMatch = metaContent.match(/## Font\n(.*?)\n/);
 
+    // Parse E-Mail-Signatur dynamisch
+    let emailSignatur = {
+      name: 'Tobias Hinderling',
+      firma: 'Internet Handwerk',
+      slogan1: 'Bruchsch ä nöii Website?',
+      slogan2: 'pragmatisch, modern, unkompliziert',
+      website: 'https://www.hinderling-internet-handwerk.ch',
+      linkText: 'Di Internet-Handwärker "de Bieu"'
+    };
+    
+    if (signaturMatch) {
+      const sig = signaturMatch[1].trim();
+      const lines = sig.split('\n').filter(line => line.trim());
+      if (lines.length >= 4) {
+        emailSignatur.name = lines[0].trim();
+        emailSignatur.firma = lines[1].trim();
+        emailSignatur.slogan1 = lines[2].trim();
+        emailSignatur.slogan2 = lines[3].trim();
+        
+        // Parse Link aus letzter Zeile
+        const linkMatch = sig.match(/\[(.*?)\]\((.*?)\)/);
+        if (linkMatch) {
+          emailSignatur.linkText = linkMatch[1];
+          emailSignatur.website = linkMatch[2];
+        }
+      }
+    }
+
     return {
-      name: 'Internet Handwerk',
-      inhaber: 'Tobias Hinderling',
+      name: emailSignatur.firma,
+      inhaber: emailSignatur.name,
       adresse: {
         strasse: adresseMatch ? adresseMatch[1].trim() : 'Werkhofstrasse 11',
         plzOrt: adresseMatch ? adresseMatch[2].trim() : '2503 Biel'
@@ -55,7 +84,8 @@ export class PdfExportService {
       telefon: telefonMatch ? telefonMatch[1].trim() : "079/483'99'94",
       email: emailMatch ? emailMatch[1].trim() : 'hallo@hinderling-internet-handwerk.ch',
       brandColor: colorMatch ? colorMatch[1].trim().replace('#', '') : 'bd00ff',
-      font: fontMatch ? fontMatch[1].trim() : 'Lexend Exa'
+      font: fontMatch ? fontMatch[1].trim() : 'Lexend Exa',
+      emailSignatur: emailSignatur
     };
   }
 
@@ -106,12 +136,19 @@ export class PdfExportService {
       adresse += kunde.adresse.strasse + '\\\\';
     }
     
-    if (kunde.adresse?.plz && kunde.adresse?.ort) {
-      adresse += kunde.adresse.plz + ' ' + kunde.adresse.ort;
+    // PLZ und Ort immer anzeigen, auch wenn nur eines vorhanden ist
+    const plz = kunde.adresse?.plz || '';
+    const ort = kunde.adresse?.ort || '';
+    if (plz || ort) {
+      adresse += `${plz} ${ort}`.trim() + '\\\\';
     }
     
+    // Land nur anzeigen wenn vorhanden und nicht Schweiz
     if (kunde.adresse?.land && kunde.adresse.land !== 'Schweiz') {
-      adresse += '\\\\' + kunde.adresse.land;
+      adresse += kunde.adresse.land;
+    } else {
+      // Entferne letzten Zeilenumbruch wenn kein Land
+      adresse = adresse.replace(/\\\\$/, '');
     }
 
     return adresse;
@@ -182,13 +219,20 @@ export class PdfExportService {
    * Generiert vollständiges LaTeX-Template
    */
   generateLatexTemplate({ offerte, kunde, firmendaten, kundenAdresse, positionenLatex }) {
-    // Gültigkeitsdatum formatieren
-    const gueltigBis = new Date(offerte.gültigBis);
-    const gueltigBisFormatted = gueltigBis.toLocaleDateString('de-CH');
+    // Sicheres Datum-Parsing und Formatierung
+    const formatDate = (dateString) => {
+      if (!dateString) return 'Nicht definiert';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Ungültiges Datum';
+        return date.toLocaleDateString('de-CH');
+      } catch (error) {
+        return 'Datum-Fehler';
+      }
+    };
     
-    // Offertdatum formatieren
-    const datum = new Date(offerte.datum);
-    const datumFormatted = datum.toLocaleDateString('de-CH');
+    const gueltigBisFormatted = formatDate(offerte.gültigBis);
+    const datumFormatted = formatDate(offerte.datum);
 
     // Logo-Pfad (relativ zum Ausgabeverzeichnis)
     const logoPath = path.relative(this.outputDir, path.join(this.templateDir, 'Logo_Print.png'));
@@ -273,12 +317,12 @@ Wir freuen uns auf Ihre Rückmeldung und danken Ihnen für Ihr Vertrauen.
 \\begin{minipage}{10cm}
 % Unterschrift-Bild
 \\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
-% E-Mail-Signatur
-\\textbf{${firmendaten.inhaber}}\\\\
-${firmendaten.name}\\\\[0.5em]
-Bruchsch ä nöii Website?\\\\[0.3em]
-pragmatisch, modern, unkompliziert\\\\[0.5em]
-\\href{https://www.hinderling-internet-handwerk.ch}{\\textcolor{brand}{Di Internet-Handwärker "de Bieu"}}
+% E-Mail-Signatur (dynamisch aus Firmendaten)
+\\textbf{${firmendaten.emailSignatur.name}}\\\\
+${firmendaten.emailSignatur.firma}\\\\[0.5em]
+${firmendaten.emailSignatur.slogan1}\\\\[0.3em]
+${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
+\\href{${firmendaten.emailSignatur.website}}{\\textcolor{brand}{${firmendaten.emailSignatur.linkText}}}
 \\end{minipage}
 
 \\end{document}`;
