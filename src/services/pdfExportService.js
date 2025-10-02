@@ -222,8 +222,6 @@ export class PdfExportService {
 \\renewcommand{\\headrulewidth}{0pt}
 \\fancyhead[L]{\\includegraphics[height=2cm]{${logoPath}}}
 \\fancyhead[R]{\\begin{minipage}{7cm}\\raggedleft\\small
-\\textbf{${firmendaten.name}}\\\\
-${firmendaten.inhaber}\\\\
 ${firmendaten.adresse.strasse}\\\\
 ${firmendaten.adresse.plzOrt}\\\\
 \\href{tel:${firmendaten.telefon}}{\\textcolor{brand}{${firmendaten.telefon}}}\\\\
