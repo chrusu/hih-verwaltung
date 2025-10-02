@@ -8,12 +8,14 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { KundenService } from './services/kundenService.js';
 import { OffertenService } from './services/offertenService.js';
+import { PdfExportService } from './services/pdfExportService.js';
 
 const program = new Command();
 
 // Services initialisieren
 const kundenService = new KundenService();
 const offertenService = new OffertenService();
+const pdfExportService = new PdfExportService();
 
 /**
  * Hilfsfunktionen
@@ -256,6 +258,47 @@ offertenCmd
       logInfo(`Gesamtpreis: CHF ${position.gesamtpreis.toFixed(2)}`);
     } catch (error) {
       logError(`Fehler beim Hinzufügen der Position: ${error.message}`);
+    }
+  });
+
+offertenCmd
+  .command('pdf')
+  .description('Offerte als PDF exportieren')
+  .requiredOption('-o, --offerte <offerte>', 'Offertennummer oder ID')
+  .option('--no-open', 'PDF nicht automatisch öffnen')
+  .action(async (options) => {
+    try {
+      // Prüfe LaTeX-Installation
+      const hasLatex = await pdfExportService.checkLatexInstallation();
+      if (!hasLatex) {
+        logError('XeLaTeX ist nicht installiert. Bitte installiere LaTeX (z.B. MacTeX auf macOS).');
+        logInfo('Installation: brew install --cask mactex');
+        return;
+      }
+
+      logInfo(`Generiere PDF für Offerte ${options.offerte}...`);
+      
+      const result = await pdfExportService.exportToPdf(options.offerte);
+      
+      if (result.success) {
+        logSuccess(`PDF erfolgreich erstellt: ${result.filename}`);
+        logInfo(`Pfad: ${result.pdfPath}`);
+        
+        // PDF automatisch öffnen (außer --no-open wurde gesetzt)
+        if (options.open !== false) {
+          try {
+            const { execSync } = await import('child_process');
+            execSync(`open "${result.pdfPath}"`, { stdio: 'ignore' });
+            logInfo('PDF wird geöffnet...');
+          } catch (error) {
+            logInfo('PDF konnte nicht automatisch geöffnet werden.');
+          }
+        }
+      } else {
+        logError('PDF-Erstellung fehlgeschlagen');
+      }
+    } catch (error) {
+      logError(`Fehler beim PDF-Export: ${error.message}`);
     }
   });
 

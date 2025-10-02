@@ -55,6 +55,9 @@ node src/cli.js offerte list
 
 # Position zu Offerte hinzufügen
 node src/cli.js offerte position --offerte OFF-2025-001 --beschreibung "Programmierung" --menge 10 --einheit "Std" --preis 120
+
+# Offerte als PDF exportieren
+node src/cli.js offerte pdf --offerte OFF-2025-001
 ```
 
 ## 📊 Beispieldaten
@@ -68,10 +71,12 @@ Das System enthält bereits Beispieldaten:
 ## 🔧 Features
 
 ### ✅ Implementiert
+
 - [x] Kundenverwaltung (anlegen, auflisten)
 - [x] Kontakte zu Kunden hinzufügen
 - [x] Offertenverwaltung (anlegen, auflisten)
 - [x] Offertpositionen hinzufügen
+- [x] **PDF-Export für Offerten** (LaTeX-basiert)
 - [x] Automatische Nummerierung (KUNDE-001, OFF-2025-001)
 - [x] Git-Integration (alles versioniert)
 - [x] Dateibasierte Struktur (Markdown + CSV)
