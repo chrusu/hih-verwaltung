@@ -125,11 +125,19 @@ export class PdfExportService {
       return 'Keine Positionen vorhanden.';
     }
 
-    let latex = '\\begin{longtable}{|l|p{6cm}|r|r|r|}\n';
+    let latex = '\\begin{longtable}{|c|p{6.5cm}|c|c|c|}\n';
+    latex += '\\hline\n';
+    latex += '\\textbf{Pos.} & \\textbf{Beschreibung} & \\textbf{Menge} & \\textbf{Preis} & \\textbf{Total} \\\\\n';
+    latex += '\\hline\n';
+    latex += '\\endfirsthead\n';
     latex += '\\hline\n';
     latex += '\\textbf{Pos.} & \\textbf{Beschreibung} & \\textbf{Menge} & \\textbf{Preis} & \\textbf{Total} \\\\\n';
     latex += '\\hline\n';
     latex += '\\endhead\n';
+    latex += '\\hline\n';
+    latex += '\\endfoot\n';
+    latex += '\\hline\n';
+    latex += '\\endlastfoot\n';
 
     positionen.forEach(pos => {
       const beschreibung = this.escapeLatex(pos.beschreibung);
@@ -182,6 +190,9 @@ export class PdfExportService {
     const datum = new Date(offerte.datum);
     const datumFormatted = datum.toLocaleDateString('de-CH');
 
+    // Logo-Pfad (relativ zum Ausgabeverzeichnis)
+    const logoPath = path.relative(this.outputDir, path.join(this.templateDir, 'Logo_Print.png'));
+
     return `% LaTeX-Template für Offerte ${offerte.nummer}
 \\documentclass[11pt]{article}
 \\usepackage[margin=2.2cm]{geometry}
@@ -203,13 +214,14 @@ export class PdfExportService {
 \\hypersetup{colorlinks=true,linkcolor=brand,urlcolor=brand,citecolor=brand}
 \\urlstyle{same}
 
-% Header mit Logo und Firmendaten
+% Header mit Logo links und Firmendaten rechts
 \\usepackage{fancyhdr}
 \\pagestyle{fancy}
-\\setlength{\\headheight}{50pt}
+\\setlength{\\headheight}{60pt}
 \\fancyhf{}
 \\renewcommand{\\headrulewidth}{0pt}
-\\fancyhead[R]{\\begin{minipage}{8cm}\\raggedleft\\small
+\\fancyhead[L]{\\includegraphics[height=2cm]{${logoPath}}}
+\\fancyhead[R]{\\begin{minipage}{7cm}\\raggedleft\\small
 \\textbf{${firmendaten.name}}\\\\
 ${firmendaten.inhaber}\\\\
 ${firmendaten.adresse.strasse}\\\\
