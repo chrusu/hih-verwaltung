@@ -125,7 +125,7 @@ export class PdfExportService {
       return 'Keine Positionen vorhanden.';
     }
 
-    let latex = '\\begin{longtable}{|c|p{6.5cm}|c|c|c|}\n';
+    let latex = '\\begin{longtable}{|>{\\centering}p{1cm}|p{7cm}|>{\\centering}p{2cm}|>{\\centering}p{2cm}|>{\\centering\\arraybackslash}p{2cm}|}\n';
     latex += '\\hline\n';
     latex += '\\textbf{Pos.} & \\textbf{Beschreibung} & \\textbf{Menge} & \\textbf{Preis} & \\textbf{Total} \\\\\n';
     latex += '\\hline\n';
@@ -268,14 +268,20 @@ ${offerte.notizen ? '\\section*{Bemerkungen}\n' + this.escapeLatex(offerte.notiz
 
 Wir freuen uns auf Ihre Rückmeldung und danken Ihnen für Ihr Vertrauen.
 
-\\vspace{1.5cm}
+\\vspace{2cm}
 
-% Signatur
+% Signatur mit Unterschrift und E-Mail-Signatur
 \\noindent
-\\vspace{0.4cm}
-\\\\
-${firmendaten.inhaber}\\\\
-\\small ${firmendaten.name}
+\\begin{minipage}{10cm}
+% Unterschrift-Bild
+\\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
+% E-Mail-Signatur
+\\textbf{${firmendaten.inhaber}}\\\\
+${firmendaten.name}\\\\[0.5em]
+Bruchsch ä nöii Website?\\\\[0.3em]
+pragmatisch, modern, unkompliziert\\\\[0.5em]
+\\href{https://www.hinderling-internet-handwerk.ch}{\\textcolor{brand}{Di Internet-Handwärker "de Bieu"}}
+\\end{minipage}
 
 \\end{document}`;
   }
