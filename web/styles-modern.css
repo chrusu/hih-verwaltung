@@ -154,6 +154,16 @@ body {
     flex-direction: column;
 }
 
+/* Tabellenbereiche sollen sich nicht auf verfügbare Höhe ausdehnen */
+.data-table {
+    height: auto;
+    min-height: unset;
+}
+
+.data-table tbody {
+    height: auto;
+}
+
 .screen.hidden {
     display: none;
 }
@@ -339,6 +349,10 @@ body {
     text-overflow: ellipsis;
 }
 
+.data-table {
+    table-layout: auto;
+}
+
 .data-table tbody {
     background: var(--bg-secondary);
 }
@@ -347,6 +361,8 @@ body {
     cursor: pointer;
     transition: all 0.15s ease;
     border-bottom: 1px solid var(--bg-tertiary);
+    height: auto;
+    min-height: unset;
 }
 
 .data-table tbody tr:hover {
@@ -1040,16 +1056,18 @@ select.form-input option {
         line-height: 1.2;
     }
     
-    /* Tabellen-Zeilen: Nur so hoch wie nötig */
-    .data-table tbody tr {
-        height: auto;
-        min-height: unset;
-    }
-    
-    .data-table tbody td {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        vertical-align: top;
-        line-height: 1.3;
+    /* Mobile: Tabellen-Zeilen kompakt */
+    @media (max-width: 768px) {
+        .data-table tbody tr {
+            height: auto;
+            min-height: unset;
+        }
+        
+        .data-table tbody td {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            vertical-align: top;
+            line-height: 1.3;
+        }
     }
     
     /* Status Badge für mobile anpassen */
@@ -1060,13 +1078,14 @@ select.form-input option {
         white-space: nowrap;
     }
     
-    /* Mobile: Mehrzeiliges Kunden-Layout */
-    .mobile-kunde-info {
-        display: block;
+    /* Desktop: Mobile-Layouts ausblenden, Desktop-Elemente anzeigen */
+    .mobile-kunde-info,
+    .mobile-offerte-info {
+        display: none;
     }
     
-    .mobile-kunde-info .desktop-only {
-        display: none;
+    .desktop-only {
+        display: table-cell;
     }
     
     .kunde-name {
@@ -1084,13 +1103,16 @@ select.form-input option {
         margin-top: 1px;
     }
     
-    /* Mobile: Mehrzeiliges Offerten-Layout */
-    .mobile-offerte-info {
-        display: block;
-    }
-    
-    .mobile-offerte-info .desktop-only {
-        display: none;
+    /* Mobile: Mehrzeiliges Layout aktivieren */
+    @media (max-width: 768px) {
+        .mobile-kunde-info,
+        .mobile-offerte-info {
+            display: block;
+        }
+        
+        .desktop-only {
+            display: none !important;
+        }
     }
     
     .offerte-header {
