@@ -92,7 +92,38 @@ export class OffertenService {
    * Listet alle Offerten auf
    */
   async listOfferten() {
-    return await this.fileManager.listOfferten();
+    const offerten = await this.fileManager.listOfferten();
+    
+    // Berechne Gesamtsumme für jede Offerte
+    const offertenMitSumme = await Promise.all(offerten.map(async (offerte) => {
+      try {
+        const positionen = await this.getPositionen(offerte.id);
+        
+        // Berechne Subtotal aus Positionen
+        const subtotal = positionen.reduce((sum, pos) => sum + pos.gesamtpreis, 0);
+        
+        // MwSt berechnen
+        const mwstBetrag = subtotal * (offerte.mwstSatz / 100);
+        const gesamtBrutto = subtotal + mwstBetrag;
+        
+        return {
+          ...offerte,
+          gesamtsumme: subtotal,
+          mwstBetrag: mwstBetrag,
+          gesamtBrutto: gesamtBrutto
+        };
+      } catch (error) {
+        // Falls Positionen nicht geladen werden können, Standardwerte
+        return {
+          ...offerte,
+          gesamtsumme: 0,
+          mwstBetrag: 0,
+          gesamtBrutto: 0
+        };
+      }
+    }));
+    
+    return offertenMitSumme;
   }
 
   /**
@@ -106,10 +137,13 @@ export class OffertenService {
 
     // Positionen laden
     const positionenPath = path.join(this.basePath, 'offerten', offerte.verzeichnis, 'positionen.csv');
-    const positionen = await this.fileManager.readCsvFile(positionenPath);
+    const positionenData = await this.fileManager.readCsvFile(positionenPath);
+    
+    // Filtere leere oder ungültige Positionen heraus (wie in getPositionen)
+    const validPositions = positionenData.filter(p => p && p.id && p.beschreibung);
 
     // Gesamtsumme berechnen
-    const gesamtsumme = positionen.reduce((sum, pos) => {
+    const gesamtsumme = validPositions.reduce((sum, pos) => {
       const position = new Offertposition({
         ...pos,
         menge: parseFloat(pos.menge) || 0,
@@ -124,12 +158,13 @@ export class OffertenService {
 
     return {
       ...offerte,
-      positionen: positionen.map(p => new Offertposition({
+      positionen: validPositions.map(p => new Offertposition({
         ...p,
         menge: parseFloat(p.menge) || 0,
         einzelpreis: parseFloat(p.einzelpreis) || 0,
-        rabatt: parseFloat(p.rabatt) || 0
-      })),
+        rabatt: parseFloat(p.rabatt) || 0,
+        position: parseInt(p.position) || 0
+      })).sort((a, b) => a.position - b.position),
       gesamtsumme: gesamtsumme,
       mwstBetrag: mwstBetrag,
       gesamtBrutto: gesamtBrutto
@@ -148,7 +183,10 @@ export class OffertenService {
     const positionenPath = path.join(this.basePath, 'offerten', offerte.verzeichnis, 'positionen.csv');
     const positionenData = await this.fileManager.readCsvFile(positionenPath);
     
-    return positionenData.map(p => new Offertposition({
+    // Filtere leere oder ungültige Positionen heraus
+    const validPositions = positionenData.filter(p => p && p.id && p.beschreibung);
+    
+    return validPositions.map(p => new Offertposition({
       ...p,
       menge: parseFloat(p.menge) || 0,
       einzelpreis: parseFloat(p.einzelpreis) || 0,

@@ -2,3 +2,6 @@ id,offerteId,position,beschreibung,menge,einheit,einzelpreis,rabatt,gesamtpreis,
 ,,,,,,,,,
 POS-ACLY55C_,OFF-zYa5h2MG,1,Bildslider entwickeln,1,Einheit,1200,0,1200,
 POS-cCC64VY8,OFF-zYa5h2MG,2,Bildslider Umsetzen für 3 verschiedene Inhaltsseiten,3,Stk,200,0,600,
+POS-fOFTcTyd,OFF-zYa5h2MG,3,Test,1,Stk,0,0,0,Test
+POS-rtNG_adt,OFF-zYa5h2MG,4,test3,1,Stk,0,0,0,test
+POS-m7s4rAv_,OFF-zYa5h2MG,5,asdfsafsa,1,Tag,1200,0,1200,
