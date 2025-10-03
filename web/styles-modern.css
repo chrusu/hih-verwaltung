@@ -354,8 +354,9 @@ body {
 }
 
 .data-table tbody tr.selected {
-    background: var(--accent-purple);
-    color: var(--bg-primary);
+    background: var(--bg-hover);
+    border-left: 3px solid var(--accent-blue);
+    position: relative;
 }
 
 .data-table tbody td {
@@ -369,7 +370,7 @@ body {
 }
 
 .data-table tbody tr.selected td {
-    color: var(--bg-primary);
+    color: var(--text-primary);
     font-weight: 500;
 }
 
@@ -943,4 +944,284 @@ select.form-input option {
 .btn-danger:hover {
     background: var(--accent-red);
     transform: translateY(-1px);
+}
+
+/* ===== MOBILE OPTIMIERUNGEN ===== */
+
+/* Mobile Function Keys Bar */
+.mobile-function-keys {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-top: 2px solid var(--border-color);
+    padding: var(--spacing-sm);
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+}
+
+.mobile-function-keys .btn {
+    min-width: 50px;
+    font-size: 16px; /* Emoji-Größe */
+    padding: var(--spacing-xs) 2px;
+    flex: 1;
+    max-width: 70px;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.mobile-function-keys .btn small {
+    font-size: 9px;
+    display: block;
+    margin-top: 2px;
+}
+
+.mobile-function-keys .btn-key {
+    background: var(--bg-tertiary);
+    color: var(--accent-blue);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.mobile-function-keys .btn-key:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-blue);
+}
+
+.mobile-function-keys .btn-key:active {
+    background: var(--accent-blue);
+    color: var(--bg-primary);
+}
+
+/* Content Padding für Mobile (Platz für Function Keys) */
+@media (max-width: 768px) {
+    .content-container {
+        padding-bottom: 60px; /* Platz für Function Keys */
+    }
+    
+    .window {
+        margin-bottom: var(--spacing-sm);
+    }
+}
+
+/* Mobile-spezifische Anpassungen */
+@media (max-width: 768px) {
+    /* Kleinere Schrift für mobile */
+    :root {
+        --font-size: 12px;
+    }
+    
+    /* Dashboard Schnellzugriff verstecken */
+    .dashboard-shortcuts {
+        display: none !important;
+    }
+    
+    /* Tabellen responsive machen */
+    .data-table {
+        font-size: 11px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: var(--spacing-sm) var(--spacing-xs);
+        vertical-align: top;
+    }
+    
+    /* Mobile: Größeres Padding für Touch */
+    .data-table .mobile-kunde-info,
+    .data-table .mobile-offerte-info {
+        padding: var(--spacing-xs) 0;
+    }
+    
+    /* Status Badge für mobile anpassen */
+    .status-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: var(--border-radius);
+        white-space: nowrap;
+    }
+    
+    /* Mobile: Mehrzeiliges Kunden-Layout */
+    .mobile-kunde-info {
+        display: block;
+    }
+    
+    .mobile-kunde-info .desktop-only {
+        display: none;
+    }
+    
+    .kunde-name {
+        font-weight: bold;
+        color: var(--accent-blue);
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+    
+    .kunde-details {
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.3;
+        margin-top: 2px;
+    }
+    
+    /* Mobile: Mehrzeiliges Offerten-Layout */
+    .mobile-offerte-info {
+        display: block;
+    }
+    
+    .mobile-offerte-info .desktop-only {
+        display: none;
+    }
+    
+    .offerte-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+    }
+    
+    .offerte-titel {
+        font-weight: bold;
+        color: var(--accent-blue);
+        font-size: 13px;
+        flex: 1;
+        margin-right: var(--spacing-sm);
+    }
+    
+    .offerte-total {
+        font-weight: bold;
+        color: var(--accent-green);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    
+    .offerte-details {
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.3;
+    }
+    
+    /* Kleinere Spaltenbreiten für mobile */
+    .col-id { width: 60px; }
+    .col-name,
+    .col-titel { min-width: 120px; width: 100%; }
+    .col-date,
+    .col-datum { width: 80px; }
+    .col-status { width: 80px; }
+    .col-total { width: 80px; }
+    .col-kunde { width: 120px; }
+    .col-nummer { width: 80px; }
+    
+    /* Modal für mobile optimieren */
+    .modal {
+        margin: var(--spacing-sm);
+        max-height: calc(100vh - 80px); /* Platz für Function Keys */
+    }
+    
+    .modal-content {
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+    }
+    
+    /* Buttons für mobile */
+    .btn {
+        min-height: 36px; /* Touch-friendly */
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    /* Form-Elemente größer für Touch */
+    input, select, textarea {
+        min-height: 36px;
+        font-size: 16px; /* Verhindert Zoom auf iOS */
+    }
+    
+    /* Window Title kleiner */
+    .window-title {
+        font-size: 14px;
+        padding: var(--spacing-sm);
+    }
+    
+    /* Status-Anzeige kompakter */
+    .status-display {
+        font-size: 11px;
+        padding: var(--spacing-xs);
+    }
+}
+
+/* Sehr kleine Bildschirme (< 480px) */
+@media (max-width: 480px) {
+    .mobile-function-keys {
+        padding: var(--spacing-xs);
+    }
+    
+    .mobile-function-keys .btn {
+        min-width: 45px;
+        font-size: 14px; /* Emoji-Größe */
+        padding: 4px 2px;
+    }
+    
+    .mobile-function-keys .btn small {
+        font-size: 8px;
+    }
+    
+    .data-table {
+        font-size: 10px;
+    }
+    
+    .modal {
+        margin: var(--spacing-xs);
+    }
+    
+    /* Horizontales Scrollen für Tabellen wenn nötig */
+    .table-container {
+        overflow-x: auto;
+    }
+}
+
+/* Touch-friendly Hover-Effekte */
+@media (hover: none) {
+    .btn:hover,
+    .clickable:hover,
+    tr:hover {
+        transform: none;
+        background: var(--bg-hover);
+    }
+}
+
+/* Desktop/Mobile Visibility */
+.desktop-only {
+    display: block;
+}
+
+.mobile-only {
+    display: none;
+}
+
+/* Desktop: Mobile-Info verstecken */
+.mobile-kunde-info,
+.mobile-offerte-info {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+    
+    .mobile-only {
+        display: flex !important;
+    }
+    
+    /* Mobile: Desktop-Info verstecken, Mobile-Info anzeigen */
+    .mobile-kunde-info,
+    .mobile-offerte-info {
+        display: block !important;
+    }
 }

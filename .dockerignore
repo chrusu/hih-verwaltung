@@ -1,0 +1,15 @@
+# Docker-spezifische Ignores
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+.dockerignore
+
+# Nginx Configuration
+nginx.conf
+ssl/
+
+# Docker Volumes
+/data-volume/
+
+# Backup-Verzeichnis
+/backups/

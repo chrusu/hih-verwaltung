@@ -25,7 +25,7 @@
         </header>
 
         <!-- Main Content Area -->
-        <main class="content-area" id="contentArea">
+        <main class="content-area content-container" id="contentArea">
             <!-- Startup Screen -->
             <div class="screen startup-screen" id="startupScreen">
                 <div class="terminal-window">
@@ -71,7 +71,7 @@
                                 </div>
                             </div>
                             
-                            <div class="dashboard-section">
+                            <div class="dashboard-section dashboard-shortcuts">
                                 <h3>🎯 SCHNELLZUGRIFF</h3>
                                 <div class="quick-access">
                                     <div class="quick-item">F2 = Kundenverwaltung</div>
@@ -100,10 +100,13 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th class="col-id">ID</th>
-                                    <th class="col-name">Name</th>
-                                    <th class="col-email">Email</th>
-                                    <th class="col-phone">Telefon</th>
+                                    <th class="col-id desktop-only">ID</th>
+                                    <th class="col-name">
+                                        <span class="desktop-only">Name</span>
+                                        <span class="mobile-only">Kunde</span>
+                                    </th>
+                                    <th class="col-email desktop-only">Email</th>
+                                    <th class="col-phone desktop-only">Telefon</th>
                                 </tr>
                             </thead>
                             <tbody id="kundenTableBody">
@@ -136,11 +139,14 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th class="col-nummer">Nummer</th>
-                                    <th class="col-titel">Titel</th>
-                                    <th class="col-kunde">Kunde</th>
-                                    <th class="col-datum">Datum</th>
-                                    <th class="col-total">Total</th>
+                                    <th class="col-nummer desktop-only">Nummer</th>
+                                    <th class="col-titel">
+                                        <span class="desktop-only">Titel</span>
+                                        <span class="mobile-only">Offerte</span>
+                                    </th>
+                                    <th class="col-kunde desktop-only">Kunde</th>
+                                    <th class="col-datum desktop-only">Datum</th>
+                                    <th class="col-total desktop-only">Total</th>
                                     <th class="col-status">Status</th>
                                 </tr>
                             </thead>
@@ -188,8 +194,8 @@
             <span class="status-message" id="statusMessage">System bereit</span>
         </div>
 
-        <!-- F-Keys Menu Bar -->
-        <footer class="menu-bar">
+        <!-- F-Keys Menu Bar (Desktop) -->
+        <footer class="menu-bar desktop-only">
             <div class="menu-items">
                 <span class="menu-item" data-key="F1">F1=Hilfe</span>
                 <span class="menu-item" data-key="F2">F2=Kunden</span>
@@ -202,6 +208,17 @@
                 <span class="menu-item" data-key="F10">F10=Ende</span>
             </div>
         </footer>
+
+        <!-- Mobile Function Keys -->
+        <div class="mobile-function-keys mobile-only">
+            <button class="btn btn-key" data-key="F1">📖<br><small>Hilfe</small></button>
+            <button class="btn btn-key" data-key="F2">👥<br><small>Kunden</small></button>
+            <button class="btn btn-key" data-key="F3">📄<br><small>Offerten</small></button>
+            <button class="btn btn-key" data-key="F4">🧾<br><small>Rechnung</small></button>
+            <button class="btn btn-key" data-key="F5">�<br><small>Laden</small></button>
+            <button class="btn btn-key" data-key="F6">📤<br><small>Export</small></button>
+            <button class="btn btn-key" data-key="F10">❌<br><small>Ende</small></button>
+        </div>
     </div>
 
     <script>

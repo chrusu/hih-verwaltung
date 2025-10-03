@@ -54,8 +54,8 @@ class HIHTerminalWeb {
             }
         });
         
-        // Menu Bar Clicks
-        document.querySelectorAll('.menu-item').forEach(item => {
+        // Menu Bar Clicks (Desktop + Mobile)
+        document.querySelectorAll('.menu-item, .btn-key').forEach(item => {
             item.addEventListener('click', () => {
                 const key = item.dataset.key;
                 this.handleFunctionKey(key);
@@ -750,7 +750,7 @@ class HIHTerminalWeb {
         if (this.data.kunden.length === 0) {
             const row = document.createElement('tr');
             row.className = 'empty-row';
-            row.innerHTML = '<td colspan="4">Keine Kunden vorhanden. Drücken Sie "N" um einen neuen Kunden zu erstellen.</td>';
+            row.innerHTML = '<td colspan="4" class="desktop-only">Keine Kunden vorhanden. Drücken Sie "N" um einen neuen Kunden zu erstellen.</td><td class="mobile-only">Keine Kunden vorhanden.<br><small>Drücken Sie "N" um einen neuen Kunden zu erstellen.</small></td>';
             tbody.appendChild(row);
             return;
         }
@@ -763,10 +763,20 @@ class HIHTerminalWeb {
             }
             
             row.innerHTML = `
-                <td class="col-id">${kunde.id}</td>
-                <td class="col-name">${kunde.name || ''}</td>
-                <td class="col-email">${kunde.email || ''}</td>
-                <td class="col-phone">${kunde.telefon || ''}</td>
+                <td class="col-id desktop-only">${kunde.id}</td>
+                <td class="col-name">
+                    <div class="mobile-kunde-info">
+                        <div class="kunde-name">${kunde.name || ''}</div>
+                        <div class="kunde-details">
+                            ${kunde.email ? `📧 ${kunde.email}` : ''}
+                            ${kunde.email && kunde.telefon ? ' • ' : ''}
+                            ${kunde.telefon ? `📞 ${kunde.telefon}` : ''}
+                        </div>
+                    </div>
+                    <span class="desktop-only">${kunde.name || ''}</span>
+                </td>
+                <td class="col-email desktop-only">${kunde.email || ''}</td>
+                <td class="col-phone desktop-only">${kunde.telefon || ''}</td>
             `;
             
             row.addEventListener('click', (e) => {
@@ -788,7 +798,7 @@ class HIHTerminalWeb {
         if (this.data.offerten.length === 0) {
             const row = document.createElement('tr');
             row.className = 'empty-row';
-            row.innerHTML = '<td colspan="6">Keine Offerten vorhanden. Drücken Sie "N" um eine neue Offerte zu erstellen.</td>';
+            row.innerHTML = '<td colspan="6" class="desktop-only">Keine Offerten vorhanden. Drücken Sie "N" um eine neue Offerte zu erstellen.</td><td colspan="2" class="mobile-only">Keine Offerten vorhanden.<br><small>Drücken Sie "N" um eine neue Offerte zu erstellen.</small></td>';
             tbody.appendChild(row);
             return;
         }
@@ -805,11 +815,22 @@ class HIHTerminalWeb {
             const total = `CHF ${(offerte.gesamtBrutto || 0).toFixed(2)}`;
             
             row.innerHTML = `
-                <td class="col-nummer">${offerte.nummer || ''}</td>
-                <td class="col-titel">${offerte.titel || 'Ohne Titel'}</td>
-                <td class="col-kunde">${kunde ? kunde.name : 'Unbekannt'}</td>
-                <td class="col-datum">${datum}</td>
-                <td class="col-total">${total}</td>
+                <td class="col-nummer desktop-only">${offerte.nummer || ''}</td>
+                <td class="col-titel">
+                    <div class="mobile-offerte-info">
+                        <div class="offerte-header">
+                            <span class="offerte-titel">${offerte.titel || 'Ohne Titel'}</span>
+                            <span class="offerte-total">${total}</span>
+                        </div>
+                        <div class="offerte-details">
+                            👤 ${kunde ? kunde.name : 'Unbekannt'} • 📅 ${datum}
+                        </div>
+                    </div>
+                    <span class="desktop-only">${offerte.titel || 'Ohne Titel'}</span>
+                </td>
+                <td class="col-kunde desktop-only">${kunde ? kunde.name : 'Unbekannt'}</td>
+                <td class="col-datum desktop-only">${datum}</td>
+                <td class="col-total desktop-only">${total}</td>
                 <td class="col-status">
                     <span class="status-badge status-${(offerte.status || 'offen').toLowerCase()}">${offerte.status || 'Offen'}</span>
                 </td>
