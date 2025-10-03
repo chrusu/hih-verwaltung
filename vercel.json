@@ -1,16 +1,11 @@
 {
   "version": 2,
   "name": "hih-verwaltung",
-  "builds": [
-    {
-      "src": "web/**/*",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
@@ -21,11 +16,6 @@
       "dest": "/web/$1"
     }
   ],
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   }
