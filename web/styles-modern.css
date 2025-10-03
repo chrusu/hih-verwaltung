@@ -154,14 +154,14 @@ body {
     flex-direction: column;
 }
 
-/* Tabellenbereiche sollen sich nicht auf verfügbare Höhe ausdehnen */
+/* Tabellen-Layout stabilisieren */
 .data-table {
-    height: auto;
-    min-height: unset;
+    table-layout: fixed;
+    width: 100%;
 }
 
 .data-table tbody {
-    height: auto;
+    background: var(--bg-secondary);
 }
 
 .screen.hidden {
@@ -349,20 +349,13 @@ body {
     text-overflow: ellipsis;
 }
 
-.data-table {
-    table-layout: auto;
-}
 
-.data-table tbody {
-    background: var(--bg-secondary);
-}
 
 .data-table tbody tr {
     cursor: pointer;
     transition: all 0.15s ease;
     border-bottom: 1px solid var(--bg-tertiary);
-    height: auto;
-    min-height: unset;
+    height: 40px;
 }
 
 .data-table tbody tr:hover {
@@ -378,11 +371,12 @@ body {
 .data-table tbody td {
     padding: var(--spacing-sm) var(--spacing-lg);
     color: var(--text-primary);
-    vertical-align: top;
+    vertical-align: middle;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 12px;
+    height: 40px;
 }
 
 .data-table tbody tr.selected td {
@@ -1056,17 +1050,11 @@ select.form-input option {
         line-height: 1.2;
     }
     
-    /* Mobile: Tabellen-Zeilen kompakt */
+    /* Mobile: Kompakte Tabellen */
     @media (max-width: 768px) {
-        .data-table tbody tr {
-            height: auto;
-            min-height: unset;
-        }
-        
         .data-table tbody td {
-            padding: var(--spacing-xs) var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-xs);
             vertical-align: top;
-            line-height: 1.3;
         }
     }
     
@@ -1078,26 +1066,14 @@ select.form-input option {
         white-space: nowrap;
     }
     
-    /* Desktop: Mobile-Layouts ausblenden, Desktop-Elemente anzeigen */
+    /* Desktop: Standard-Layout wiederherstellen */
     .mobile-kunde-info,
     .mobile-offerte-info {
-        display: none !important;
+        display: none;
     }
     
     .desktop-only {
-        display: table-cell !important;
-    }
-    
-    /* Desktop: Einzeiliges Layout forcieren */
-    @media (min-width: 769px) {
-        .mobile-kunde-info,
-        .mobile-offerte-info {
-            display: none !important;
-        }
-        
-        .desktop-only {
-            display: table-cell !important;
-        }
+        display: table-cell;
     }
     
     .kunde-name {
