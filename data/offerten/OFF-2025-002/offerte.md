@@ -2,7 +2,7 @@
 id: OFF-zYa5h2MG
 nummer: OFF-2025-002
 kundeId: KD-YjuN8ooz
-kontaktId: 
+kontaktId: [object Object]
 titel: "Bildslider erstellen"
 datum: 2025-10-02
 gültigBis: 2025-11-01

@@ -2,6 +2,7 @@
 id: KD-YjuN8ooz
 nummer: KUNDE-003
 name: "AGFAR AG"
+email: "info@agfar.ch"
 typ: geschäft
 adresse:
   strasse: "Industriestrasse 5"
@@ -16,6 +17,10 @@ aktiv: true
 
 **Kundennummer:** KUNDE-003  
 **Typ:** geschäft
+
+## Kontakt
+
+**Email:** info@agfar.ch
 
 ## Adresse
 

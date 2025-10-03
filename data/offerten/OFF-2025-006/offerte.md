@@ -2,7 +2,7 @@
 id: OFF-5pgy-hCa
 nummer: OFF-2025-006
 kundeId: KD-YjuN8ooz
-kontaktId: 
+kontaktId: [object Object]
 titel: "Webseite agfar.ch"
 datum: 2025-10-02
 gültigBis: 2025-11-01

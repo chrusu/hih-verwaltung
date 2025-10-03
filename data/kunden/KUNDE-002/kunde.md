@@ -2,6 +2,8 @@
 id: KD-SJWly-zv
 nummer: KUNDE-002
 name: "Max Mustermann"
+email: "max@mustermann.ch"
+telefon: "012"
 typ: privat
 adresse:
   strasse: "Testgasse 42"
@@ -16,6 +18,11 @@ aktiv: true
 
 **Kundennummer:** KUNDE-002  
 **Typ:** privat
+
+## Kontakt
+
+**Email:** max@mustermann.ch  
+**Telefon:** 012
 
 ## Adresse
 
