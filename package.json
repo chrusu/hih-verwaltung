@@ -9,9 +9,7 @@
     "interactive": "node hih.js",
     "menu": "node hih.js",
     "dev": "node --watch src/cli.js",
-    "test": "node test/test.js",
-    "build": "echo 'Build für Vercel - keine Kompilierung nötig'",
-    "vercel-build": "echo 'Vercel Build completed'"
+    "test": "node test/test.js"
   },
   "bin": {
     "hih": "./src/cli.js"
@@ -37,6 +35,6 @@
     "nanoid": "^5.0.4"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=16.0.0"
   }
 }

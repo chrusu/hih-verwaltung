@@ -65,19 +65,3 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-/tmp/
-
-# Vercel
-.vercel
-
-# Local development data
-/data/exports/*.pdf
-/data/ausgaben/
-
-# LaTeX temporary files (local only)
-*.aux
-*.fdb_latexmk
-*.fls
-*.out
-*.synctex.gz
-*.toc
