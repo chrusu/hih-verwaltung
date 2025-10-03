@@ -81,6 +81,7 @@ Das System enthält bereits Beispieldaten:
 - [x] Git-Integration (alles versioniert)
 - [x] Dateibasierte Struktur (Markdown + CSV)
 
+
 ### 🔮 Geplant für später
 - [ ] Rechnungsverwaltung
 - [ ] Ausgabenverwaltung
