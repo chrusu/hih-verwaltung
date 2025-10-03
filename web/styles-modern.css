@@ -1081,11 +1081,23 @@ select.form-input option {
     /* Desktop: Mobile-Layouts ausblenden, Desktop-Elemente anzeigen */
     .mobile-kunde-info,
     .mobile-offerte-info {
-        display: none;
+        display: none !important;
     }
     
     .desktop-only {
-        display: table-cell;
+        display: table-cell !important;
+    }
+    
+    /* Desktop: Einzeiliges Layout forcieren */
+    @media (min-width: 769px) {
+        .mobile-kunde-info,
+        .mobile-offerte-info {
+            display: none !important;
+        }
+        
+        .desktop-only {
+            display: table-cell !important;
+        }
     }
     
     .kunde-name {
