@@ -34,7 +34,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Static files für Web Interface
-app.use(express.static(path.join(__dirname, 'web')));
+// Prüfen ob React-Build vorhanden ist, ansonsten fallback auf alte Web-Version
+const reactBuildPath = path.join(__dirname, 'web-build');
+const fallbackWebPath = path.join(__dirname, 'web');
+
+try {
+    await fs.access(reactBuildPath);
+    console.log('🚀 Verwende React Build aus web-build/');
+    app.use(express.static(reactBuildPath));
+} catch {
+    console.log('📁 React Build nicht gefunden, verwende legacy web/');
+    app.use(express.static(fallbackWebPath));
+}
 
 // Logging Middleware
 app.use((req, res, next) => {
@@ -242,6 +253,33 @@ app.post('/api/export/pdf/:offerteId', async (req, res) => {
     }
 });
 
+// PDF direkt als Blob herunterladen (für Web Interface)
+app.get('/api/offerten/:id/pdf', async (req, res) => {
+    try {
+        const offerte = await offertenService.getOfferte(req.params.id);
+        if (!offerte) {
+            return res.status(404).json({ success: false, error: 'Offerte nicht gefunden' });
+        }
+        
+        console.log(`🔄 Generiere PDF für Offerte ${offerte.nummer}...`);
+        const result = await pdfExportService.exportToPdf(offerte.nummer);
+        
+        // PDF-Datei lesen und als Blob senden
+        const pdfBuffer = await fs.readFile(result.pdfPath);
+        const filename = `offerte_${offerte.nummer}.pdf`;
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        console.log(`✅ PDF gesendet: ${filename} (${pdfBuffer.length} bytes)`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('❌ Fehler beim PDF-Export:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.get('/api/export/pdf/:offerteId/download', async (req, res) => {
     try {
         const offerte = await offertenService.getOfferte(req.params.offerteId);
@@ -428,9 +466,27 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: 'Interner Server-Fehler' });
 });
 
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).json({ success: false, error: 'Route nicht gefunden' });
+// 404 Handler für unbekannte API-Routen
+app.use('/api', (req, res) => {
+    res.status(404).json({ success: false, error: 'API Route nicht gefunden' });
+});
+
+// SPA Fallback für React Router - muss am Ende stehen
+app.get('/', async (req, res) => {
+    const indexPath = path.join(__dirname, 'web-build', 'index.html');
+    const fallbackIndexPath = path.join(__dirname, 'web', 'index.html');
+    
+    try {
+        await fs.access(indexPath);
+        res.sendFile(indexPath);
+    } catch {
+        try {
+            await fs.access(fallbackIndexPath);
+            res.sendFile(fallbackIndexPath);
+        } catch {
+            res.status(404).send('Index file not found');
+        }
+    }
 });
 
 // === SERVER START ===

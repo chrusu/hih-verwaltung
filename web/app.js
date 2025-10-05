@@ -763,20 +763,19 @@ class HIHTerminalWeb {
             }
             
             row.innerHTML = `
-                <td class="col-id desktop-only">${kunde.id}</td>
                 <td class="col-name">
-                    <div class="mobile-kunde-info">
-                        <div class="kunde-name">${kunde.name || ''}</div>
-                        <div class="kunde-details">
-                            ${kunde.email ? `📧 ${kunde.email}` : ''}
-                            ${kunde.email && kunde.telefon ? ' • ' : ''}
-                            ${kunde.telefon ? `📞 ${kunde.telefon}` : ''}
+                    <div class="desktop-layout">
+                        ${kunde.name || ''}
+                    </div>
+                    <div class="mobile-layout">
+                        <div class="mobile-line-1">${kunde.name || ''}</div>
+                        <div class="mobile-line-2">
+                            ${kunde.email || ''} ${kunde.email && kunde.telefon ? '• ' : ''}${kunde.telefon || ''}
                         </div>
                     </div>
-                    <span class="desktop-only">${kunde.name || ''}</span>
                 </td>
-                <td class="col-email desktop-only">${kunde.email || ''}</td>
-                <td class="col-phone desktop-only">${kunde.telefon || ''}</td>
+                <td class="col-email desktop-layout">${kunde.email || ''}</td>
+                <td class="col-phone desktop-layout">${kunde.telefon || ''}</td>
             `;
             
             row.addEventListener('click', (e) => {
@@ -815,25 +814,25 @@ class HIHTerminalWeb {
             const total = `CHF ${(offerte.gesamtBrutto || 0).toFixed(2)}`;
             
             row.innerHTML = `
-                <td class="col-nummer desktop-only">${offerte.nummer || ''}</td>
                 <td class="col-titel">
-                    <div class="mobile-offerte-info">
-                        <div class="offerte-header">
-                            <span class="offerte-titel">${offerte.titel || 'Ohne Titel'}</span>
-                            <span class="offerte-total">${total}</span>
-                        </div>
-                        <div class="offerte-details">
-                            👤 ${kunde ? kunde.name : 'Unbekannt'} • 📅 ${datum}
-                        </div>
+                    <div class="desktop-layout">
+                        ${offerte.titel || 'Ohne Titel'}
                     </div>
-                    <span class="desktop-only">${offerte.titel || 'Ohne Titel'}</span>
+                    <div class="mobile-layout">
+                        <div class="mobile-line-1">
+                            ${offerte.titel || 'Ohne Titel'} 
+                            <span class="status-badge status-${(offerte.status || 'offen').toLowerCase()}">${offerte.status || 'Offen'}</span>
+                        </div>
+                        <div class="mobile-line-2">${total}</div>
+                        <div class="mobile-line-3">${kunde ? kunde.name : 'Unbekannt'} • ${datum}</div>
+                    </div>
                 </td>
-                <td class="col-kunde desktop-only">${kunde ? kunde.name : 'Unbekannt'}</td>
-                <td class="col-datum desktop-only">${datum}</td>
-                <td class="col-total desktop-only">${total}</td>
-                <td class="col-status">
+                <td class="col-kunde desktop-layout">${kunde ? kunde.name : 'Unbekannt'}</td>
+                <td class="col-total desktop-layout">${total}</td>
+                <td class="col-status desktop-layout">
                     <span class="status-badge status-${(offerte.status || 'offen').toLowerCase()}">${offerte.status || 'Offen'}</span>
                 </td>
+                <td class="col-datum desktop-layout">${datum}</td>
             `;
             
             row.addEventListener('click', (e) => {

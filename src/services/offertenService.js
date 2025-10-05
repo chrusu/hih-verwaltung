@@ -94,8 +94,8 @@ export class OffertenService {
   async listOfferten() {
     const offerten = await this.fileManager.listOfferten();
     
-    // Berechne Gesamtsumme für jede Offerte
-    const offertenMitSumme = await Promise.all(offerten.map(async (offerte) => {
+    // Berechne Gesamtsumme und Kundennamen für jede Offerte
+    const offertenMitSummeUndKunde = await Promise.all(offerten.map(async (offerte) => {
       try {
         const positionen = await this.getPositionen(offerte.id);
         
@@ -106,11 +106,25 @@ export class OffertenService {
         const mwstBetrag = subtotal * (offerte.mwstSatz / 100);
         const gesamtBrutto = subtotal + mwstBetrag;
         
+        // Kundennamen laden
+        let kundeName = 'Unbekannt';
+        if (offerte.kundeId) {
+          try {
+            const kunde = await this.fileManager.findKunde(offerte.kundeId);
+            if (kunde) {
+              kundeName = kunde.name;
+            }
+          } catch (kundenError) {
+            console.warn(`Kunde ${offerte.kundeId} nicht gefunden für Offerte ${offerte.nummer}`);
+          }
+        }
+        
         return {
           ...offerte,
           gesamtsumme: subtotal,
           mwstBetrag: mwstBetrag,
-          gesamtBrutto: gesamtBrutto
+          gesamtBrutto: gesamtBrutto,
+          kundeName: kundeName
         };
       } catch (error) {
         // Falls Positionen nicht geladen werden können, Standardwerte
@@ -118,12 +132,13 @@ export class OffertenService {
           ...offerte,
           gesamtsumme: 0,
           mwstBetrag: 0,
-          gesamtBrutto: 0
+          gesamtBrutto: 0,
+          kundeName: 'Unbekannt'
         };
       }
     }));
     
-    return offertenMitSumme;
+    return offertenMitSummeUndKunde;
   }
 
   /**

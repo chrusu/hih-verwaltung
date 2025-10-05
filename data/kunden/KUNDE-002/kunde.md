@@ -1,7 +1,7 @@
 ---
 id: KD-SJWly-zv
 nummer: KUNDE-002
-name: "Max Mustermann"
+name: "Max Mustermann test"
 email: "max@mustermann.ch"
 telefon: "012 345 67 89"
 typ: privat
@@ -14,7 +14,7 @@ erstellt: 2025-10-02T13:21:29.219Z
 aktiv: true
 ---
 
-# Max Mustermann
+# Max Mustermann test
 
 **Kundennummer:** KUNDE-002  
 **Typ:** privat
