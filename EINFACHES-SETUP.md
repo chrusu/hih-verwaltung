@@ -133,14 +133,14 @@ crontab -e
 
 ## Option 3: Noch einfacher - Shared Hosting
 
-### Infomaniak Web Hosting (CHF 5.75/Monat)
-- **Node.js Support verfügbar**
+### Shared Hosting Alternative (CHF 5-10/Monat)
+- **Node.js Support** bei verschiedenen Anbietern
 - **SSL inklusive**
 - **Backups automatisch**
 - **Keine Server-Administration nötig**
 
 ### Setup bei Shared Hosting:
-1. **Web Hosting bestellen** bei Infomaniak
+1. **Web Hosting bestellen** bei einem Schweizer Anbieter
 2. **Node.js aktivieren** im Control Panel
 3. **Code hochladen** via FTP/Git
 4. **npm install** ausführen

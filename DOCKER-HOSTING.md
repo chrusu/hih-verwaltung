@@ -8,13 +8,7 @@
 - **Vorteile**: Einfach, Support auf Deutsch, etabliert
 - **Setup**: Web-Interface, sehr benutzerfreundlich
 
-### 2. **Infomaniak** (⭐ Preis-Leistung)
-- **Public Cloud** mit Docker-Support
-- **Preise**: Ab CHF 19/Monat
-- **Vorteile**: Günstig, nachhaltig (100% Ökostrom)
-- **Setup**: Mittlere Komplexität
-
-### 3. **Nine** (⭐ Enterprise)
+### 2. **Nine** (⭐ Enterprise)
 - **Managed Kubernetes**
 - **Preise**: Ab CHF 49/Monat
 - **Vorteile**: Professionell, sehr skalierbar
@@ -85,7 +79,7 @@ docker-compose exec hih-verwaltung tar -czf /app/backups/backup.tar.gz /app/data
 | Anbieter | Basic Plan | Pro Features | SSL | Support |
 |----------|------------|--------------|-----|---------|
 | **Hostpoint** | CHF 29 | Backup, Monitoring | ✅ Kostenlos | 🇨🇭 Deutsch |
-| **Infomaniak** | CHF 19 | Object Storage | ✅ Let's Encrypt | 🇨🇭 Französisch |
+
 | **Nine** | CHF 49 | Kubernetes, LB | ✅ Inklusive | 🇨🇭 Deutsch |
 | **CloudScale** | CHF 35* | API, Flexibel | ✅ Let's Encrypt | 🇨🇭 Englisch |
 

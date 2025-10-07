@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # HIH-Verwaltung Deployment Script für Schweizer Hosting
-# Verwendung: ./deploy.sh [hostpoint|infomaniak|nine|cloudscale]
+# Verwendung: ./deploy.sh [hostpoint|nine|cloudscale]
 
 set -e
 
@@ -50,11 +50,7 @@ case $PROVIDER in
         echo "Please follow Hostpoint's container deployment guide"
         echo "Upload the image and use the provided docker-compose.yml"
         ;;
-    "infomaniak")
-        echo "🌱 Deploying to Infomaniak..."
-        # Infomaniak Public Cloud deployment
-        echo "Use Infomaniak's Docker registry and deployment tools"
-        ;;
+    "nine")
     "nine")
         echo "🏔️ Deploying to Nine..."
         # Nine Kubernetes deployment
@@ -67,7 +63,7 @@ case $PROVIDER in
         ;;
     *)
         echo "❌ Unknown provider: $PROVIDER"
-        echo "Available providers: hostpoint, infomaniak, nine, cloudscale"
+        echo "Available providers: hostpoint, nine, cloudscale"
         exit 1
         ;;
 esac
