@@ -8,6 +8,9 @@ const StartupContainer = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
 `;
 
 const LogoSection = styled.div`
@@ -15,71 +18,116 @@ const LogoSection = styled.div`
   margin-bottom: ${theme.spacing.xl};
 `;
 
-const LogoText = styled.h1`
+const ASCIIArt = styled.pre`
   color: ${theme.colors.accentPurple};
-  margin: 0 0 ${theme.spacing.md} 0;
-  font-size: ${theme.fontSizes.md};
-  font-weight: ${theme.fontWeights.normal};
+  font-family: ${theme.fonts.mono};
+  font-size: 24px;
+  line-height: 1;
+  margin: 0 0 ${theme.spacing.lg} 0;
+  text-align: center;
+  user-select: none;
+  letter-spacing: -2px;
+  
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    font-size: 16px;
+    letter-spacing: -1px;
+  }
 `;
 
 const Subtitle = styled.h2`
   color: ${theme.colors.accentCyan};
   margin: 0;
-  font-size: ${theme.fontSizes.lg};
+  font-size: ${theme.fontSizes.xl};
   font-weight: ${theme.fontWeights.medium};
+  letter-spacing: ${theme.letterSpacing.wide};
+  text-transform: uppercase;
+  text-align: center;
 `;
 
 const DashboardGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: ${theme.spacing.xl};
-  margin-bottom: ${theme.spacing.xl};
+  margin: ${theme.spacing.xl} 0;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
   
   @media (max-width: ${theme.breakpoints.mobile}) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: ${theme.spacing.lg};
   }
 `;
 
 const DashboardSection = styled.div`
+  background: ${theme.colors.bgSecondary};
+  border: 2px solid ${theme.colors.borderColor};
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.xl};
+  min-width: 300px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: ${theme.colors.accentBlue};
+    box-shadow: 0 6px 16px rgba(74, 158, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
   h3 {
     color: ${theme.colors.accentGreen};
-    margin: 0 0 ${theme.spacing.md} 0;
-    font-size: ${theme.fontSizes.base};
-    font-weight: ${theme.fontWeights.semibold};
+    margin: 0 0 ${theme.spacing.lg} 0;
+    font-size: ${theme.fontSizes.lg};
+    font-weight: ${theme.fontWeights.bold};
     display: flex;
     align-items: center;
     gap: ${theme.spacing.sm};
+    padding-bottom: ${theme.spacing.md};
+    border-bottom: 2px solid ${theme.colors.bgTertiary};
+    letter-spacing: ${theme.letterSpacing.normal};
+  }
+  
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
   }
 `;
 
 const StatsGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${theme.spacing.sm};
+  gap: ${theme.spacing.md};
 `;
 
 const StatItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${theme.spacing.xs} 0;
-  border-bottom: 1px solid ${theme.colors.bgTertiary};
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  background: ${theme.colors.bgTertiary};
+  border-radius: ${theme.borderRadius.base};
+  border-left: 3px solid ${theme.colors.accentBlue};
+  transition: all 0.2s ease;
   
-  &:last-child {
-    border-bottom: none;
+  &:hover {
+    background: ${theme.colors.bgHover};
+    border-left-color: ${theme.colors.accentCyan};
+    transform: translateX(4px);
   }
 `;
 
 const StatLabel = styled.span`
   color: ${theme.colors.textSecondary};
-  font-size: ${theme.fontSizes.md};
+  font-size: ${theme.fontSizes.base};
+  font-weight: ${theme.fontWeights.medium};
 `;
 
 const StatValue = styled.span`
   color: ${theme.colors.accentBlue};
-  font-weight: ${theme.fontWeights.semibold};
-  font-size: ${theme.fontSizes.base};
+  font-weight: ${theme.fontWeights.bold};
+  font-size: ${theme.fontSizes.lg};
+  font-family: ${theme.fonts.mono};
   
   &.ready {
     color: ${theme.colors.success};
@@ -89,17 +137,28 @@ const StatValue = styled.span`
 const QuickAccess = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${theme.spacing.xs};
+  gap: ${theme.spacing.sm};
 `;
 
 const QuickItem = styled.div`
   color: ${theme.colors.textPrimary};
-  padding: ${theme.spacing.xs} 0;
-  font-size: ${theme.fontSizes.md};
-  border-bottom: 1px solid ${theme.colors.bgTertiary};
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
+  font-size: ${theme.fontSizes.base};
+  background: ${theme.colors.bgTertiary};
+  border-radius: ${theme.borderRadius.base};
+  border-left: 3px solid ${theme.colors.accentYellow};
+  transition: all 0.2s ease;
+  cursor: pointer;
   
-  &:last-child {
-    border-bottom: none;
+  &:hover {
+    background: ${theme.colors.bgHover};
+    border-left-color: ${theme.colors.accentGreen};
+    transform: translateX(4px);
+  }
+  
+  strong {
+    color: ${theme.colors.accentYellow};
+    font-weight: ${theme.fontWeights.bold};
   }
 `;
 
@@ -107,11 +166,14 @@ const StartupFooter = styled.div`
   text-align: center;
   color: ${theme.colors.textSecondary};
   font-style: italic;
-  margin-top: auto;
+  margin-top: ${theme.spacing.xl};
+  padding-top: ${theme.spacing.xl};
+  border-top: 1px solid ${theme.colors.borderColor};
   
   p {
     margin: 0;
-    font-size: ${theme.fontSizes.md};
+    font-size: ${theme.fontSizes.base};
+    letter-spacing: ${theme.letterSpacing.normal};
   }
 `;
 
@@ -127,10 +189,15 @@ const StartupScreen = ({ stats = {} }) => {
   return (
     <StartupContainer>
       <LogoSection>
-        <LogoText>╔══════════════════════════════════════════════════════════════════╗</LogoText>
-        <LogoText>║                    HIH-VERWALTUNG v2.0                           ║</LogoText>
-        <LogoText>╚══════════════════════════════════════════════════════════════════╝</LogoText>
-        <Subtitle>Business Management Terminal</Subtitle>
+        <ASCIIArt>{`
+    ██╗  ██╗██╗██╗  ██╗
+    ██║  ██║██║██║  ██║  
+    ███████║██║███████║
+    ██╔══██║██║██╔══██║
+    ██║  ██║██║██║  ██║
+    ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝
+        `}</ASCIIArt>
+        <Subtitle>HIH-Verwaltung v2.0</Subtitle>
       </LogoSection>
 
       <DashboardGrid>
@@ -138,19 +205,19 @@ const StartupScreen = ({ stats = {} }) => {
           <h3>📊 System Status</h3>
           <StatsGrid>
             <StatItem>
-              <StatLabel>Kunden:</StatLabel>
+              <StatLabel>Kunden</StatLabel>
               <StatValue>{defaultStats.kunden}</StatValue>
             </StatItem>
             <StatItem>
-              <StatLabel>Offerten:</StatLabel>
+              <StatLabel>Offerten</StatLabel>
               <StatValue>{defaultStats.offerten}</StatValue>
             </StatItem>
             <StatItem>
-              <StatLabel>Rechnungen:</StatLabel>
+              <StatLabel>Rechnungen</StatLabel>
               <StatValue>{defaultStats.rechnungen}</StatValue>
             </StatItem>
             <StatItem>
-              <StatLabel>Status:</StatLabel>
+              <StatLabel>Status</StatLabel>
               <StatValue className="ready">{defaultStats.status}</StatValue>
             </StatItem>
           </StatsGrid>
@@ -159,17 +226,17 @@ const StartupScreen = ({ stats = {} }) => {
         <DashboardSection>
           <h3>⚡ Schnellzugriff</h3>
           <QuickAccess>
-            <QuickItem>F2 → Kundenverwaltung</QuickItem>
-            <QuickItem>F3 → Offertenverwaltung</QuickItem>
-            <QuickItem>F4 → Rechnungserstellung</QuickItem>
-            <QuickItem>F6 → PDF-Export</QuickItem>
-            <QuickItem>F5 → Daten aktualisieren</QuickItem>
+            <QuickItem><strong>F2</strong> → Kundenverwaltung</QuickItem>
+            <QuickItem><strong>F3</strong> → Offertenverwaltung</QuickItem>
+            <QuickItem><strong>F4</strong> → Rechnungserstellung</QuickItem>
+            <QuickItem><strong>F6</strong> → PDF-Export</QuickItem>
+            <QuickItem><strong>F5</strong> → Daten aktualisieren</QuickItem>
           </QuickAccess>
         </DashboardSection>
       </DashboardGrid>
 
       <StartupFooter>
-        <p>Verwende die F-Tasten für die Navigation • ESC für Zurück</p>
+        <p>⌨️  Verwende die F-Tasten für die Navigation  •  ESC für Zurück  •  ↑↓ für Listen</p>
       </StartupFooter>
     </StartupContainer>
   );

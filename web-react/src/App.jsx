@@ -30,8 +30,6 @@ import offertenService from './services/offertenService';
 // Global Styles
 const GlobalStyle = createGlobalStyle`
   * {
-    margin: 0 !important;
-    padding: 0 !important;
     box-sizing: border-box;
   }
 
@@ -107,7 +105,7 @@ const GlobalStyle = createGlobalStyle`
     scrollbar-color: ${theme.colors.borderColor} ${theme.colors.bgTertiary};
   }
 
-  /* Mobile Touch Optimizations */
+  /* Mobile Touch Optimizations & Desktop Refinements */
   @media (max-width: 768px) {
     /* Enhanced button and input styling for mobile */
     button, input[type="button"], input[type="submit"], input[type="reset"] {
@@ -181,6 +179,43 @@ const GlobalStyle = createGlobalStyle`
       font-size: 16px !important;
       margin-bottom: 8px !important;
       display: block !important;
+    }
+  }
+  
+  /* Desktop Accessibility & Aesthetics */
+  @media (min-width: 769px) {
+    /* Better focus states for keyboard navigation */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    a:focus-visible {
+      outline: 3px solid #f9e2af !important;
+      outline-offset: 3px !important;
+    }
+    
+    /* Smoother interactions */
+    * {
+      scroll-behavior: smooth;
+    }
+    
+    /* Better spacing for desktop */
+    section, article {
+      margin-bottom: 24px;
+    }
+    
+    /* Enhanced table styling */
+    table {
+      border-spacing: 0 8px;
+    }
+    
+    td, th {
+      padding: 12px 16px;
+    }
+    
+    /* Card-like elements get subtle shadows */
+    .card, [role="article"], [role="region"] {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
   }
 

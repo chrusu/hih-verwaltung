@@ -73,22 +73,22 @@ export const theme = {
   
   // === SPACING ===
   spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '12px',
-    lg: '16px',
-    xl: '24px',
-    xxl: '32px',
+    xs: '6px',
+    sm: '10px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    xxl: '48px',
   },
   
   // === BORDERS ===
   borderRadius: {
     none: '0',
-    sm: '2px',
-    base: '4px',
-    md: '6px',
-    lg: '8px',
-    xl: '12px',
+    sm: '4px',
+    base: '6px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
     full: '9999px',
   },
   

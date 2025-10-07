@@ -3,82 +3,123 @@ import styled from 'styled-components';
 import { theme } from '../../themes/terminal';
 
 const FKeyContainer = styled.div`
-  background: ${theme.colors.bgTertiary};
-  border-top: 2px solid ${theme.colors.borderColor};
-  padding: ${theme.spacing.sm} 0;
+  background: ${theme.colors.bgSecondary};
+  border-top: 3px solid ${theme.colors.accentBlue};
+  padding: ${theme.spacing.xl} ${theme.spacing.lg};
+  margin-top: ${theme.spacing.lg};
+  margin-bottom: ${theme.spacing.lg};
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${theme.spacing.xs};
+  gap: ${theme.spacing.lg};
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
   
   /* Mobile improvements */
   @media (max-width: 768px) {
     padding: ${theme.spacing.md} ${theme.spacing.sm};
     padding-bottom: max(calc(${theme.spacing.md} + env(safe-area-inset-bottom)), 25px);
     gap: ${theme.spacing.sm};
+    margin-top: ${theme.spacing.sm};
+    margin-bottom: 0;
   }
 `;
 
-const FKeyItem = styled.div`
+const FKeyItem = styled.button`
   display: flex;
   align-items: center;
-  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  justify-content: flex-start;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.md} 2em ${theme.spacing.md} ${theme.spacing.md};
   cursor: pointer;
-  transition: ${theme.transitions.normal};
+  transition: all 0.2s ease;
   border-radius: ${theme.borderRadius.base};
-  font-size: ${theme.fontSizes.sm};
+  font-size: ${theme.fontSizes.base};
+  font-family: ${theme.fonts.mono};
+  background: ${theme.colors.bgTertiary};
+  border: 2px solid ${theme.colors.borderColor};
+  color: ${theme.colors.textPrimary};
+  min-width: auto;
+  width: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  
+  /* Desktop button styling */
+  @media (min-width: 769px) {
+    &:hover {
+      background: ${theme.colors.bgHover};
+      border-color: ${theme.colors.accentBlue};
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(74, 158, 255, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+  }
   
   /* Mobile touch targets - Enhanced */
   @media (max-width: 768px) {
     padding: 18px 24px;
     font-size: 18px;
-    min-height: 52px; /* Increased from 44px for better touch */
+    min-height: 52px;
     min-width: 120px;
-    border: 2px solid ${theme.colors.borderColor};
     margin: 4px 2px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  &:hover {
-    background: ${theme.colors.bgHover};
   }
   
   &.active {
     background: ${theme.colors.accentBlue};
     color: ${theme.colors.bgPrimary};
+    border-color: ${theme.colors.accentCyan};
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.5);
+    
+    &:hover {
+      background: ${theme.colors.accentCyan};
+    }
+  }
+  
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.accentYellow};
+    outline-offset: 2px;
   }
 `;
 
 const FKeyKey = styled.span`
   background: ${theme.colors.bgPrimary};
-  color: ${theme.colors.accentBlue};
-  padding: 2px 6px;
-  border-radius: 3px;
+  color: ${theme.colors.accentYellow};
+  padding: 4px 10px;
+  border-radius: ${theme.borderRadius.base};
   font-weight: ${theme.fontWeights.bold};
-  margin-right: ${theme.spacing.xs};
-  font-size: ${theme.fontSizes.xs};
-  border: 1px solid ${theme.colors.borderColor};
+  font-size: ${theme.fontSizes.sm};
+  border: 2px solid ${theme.colors.accentBlue};
+  min-width: 32px;
+  text-align: center;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
   
   /* Mobile enhancements */
   @media (max-width: 768px) {
     padding: 6px 12px;
     font-size: 14px;
     font-weight: ${theme.fontWeights.bold};
-    margin-right: 8px;
     border-radius: 6px;
+    min-width: 36px;
   }
   
   .active & {
     background: ${theme.colors.bgPrimary};
-    color: ${theme.colors.accentBlue};
+    color: ${theme.colors.accentYellow};
+    border-color: ${theme.colors.accentYellow};
   }
 `;
 
-const FKeyLabel = styled.span``;
+const FKeyLabel = styled.span`
+  font-weight: ${theme.fontWeights.medium};
+  letter-spacing: ${theme.letterSpacing.normal};
+  
+  .active & {
+    font-weight: ${theme.fontWeights.bold};
+  }
+`;
 
 const StatusBar = styled.div`
   background: ${theme.colors.bgTertiary};

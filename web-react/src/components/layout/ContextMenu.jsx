@@ -6,13 +6,13 @@ const ContextMenuContainer = styled.div`
   background: ${theme.colors.bgSecondary};
   border-top: 2px solid ${theme.colors.accentYellow};
   border-bottom: 1px solid ${theme.colors.borderColor};
-  padding: ${theme.spacing.sm};
+  padding: ${theme.spacing.xl} ${theme.spacing.lg};
   font-family: ${theme.fonts.mono};
-  font-size: ${theme.fontSizes.sm};
+  font-size: ${theme.fontSizes.base};
   
   display: flex;
   flex-wrap: wrap;
-  gap: ${theme.spacing.md};
+  gap: ${theme.spacing.lg};
   align-items: center;
   justify-content: center;
   
@@ -25,11 +25,23 @@ const ContextMenuContainer = styled.div`
   }
 `;
 
-const ContextAction = styled.div`
+const ContextAction = styled.button`
   display: flex;
   align-items: center;
-  gap: ${theme.spacing.xs};
+  justify-content: flex-start;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.md} 2em ${theme.spacing.md} ${theme.spacing.md};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.fontSizes.base};
+  font-family: ${theme.fonts.mono};
+  background: ${theme.colors.bgTertiary};
+  border: 2px solid ${theme.colors.borderColor};
   color: ${theme.colors.textSecondary};
+  min-width: auto;
+  width: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   
   /* Mobile touch targets - Enhanced */
   @media (max-width: 768px) {
@@ -40,11 +52,6 @@ const ContextAction = styled.div`
     margin: 4px;
     text-align: center;
     justify-content: center;
-    
-    &.available {
-      border: 2px solid ${theme.colors.borderColor};
-      background: ${theme.colors.bgTertiary};
-    }
   }
   
   &.available {
@@ -52,7 +59,15 @@ const ContextAction = styled.div`
     cursor: pointer;
     
     &:hover {
-      color: ${theme.colors.accentBlue};
+      background: ${theme.colors.bgHover};
+      border-color: ${theme.colors.accentBlue};
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(74, 158, 255, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     
     @media (max-width: 768px) {
@@ -65,10 +80,29 @@ const ContextAction = styled.div`
   &.primary {
     color: ${theme.colors.accentGreen};
     font-weight: bold;
+    border-color: ${theme.colors.accentGreen};
   }
   
   &.danger {
     color: ${theme.colors.accentRed};
+    border-color: ${theme.colors.accentRed};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    
+    &:hover {
+      transform: none;
+      background: ${theme.colors.bgTertiary};
+      border-color: ${theme.colors.borderColor};
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.accentYellow};
+    outline-offset: 2px;
   }
 `;
 
