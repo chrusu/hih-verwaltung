@@ -5,11 +5,13 @@
 import path from 'path';
 import { FileManager } from '../fileManager.js';
 import { Offerte, Offertposition } from '../models.js';
+import { FirmaService } from './firmaService.js';
 
 export class OffertenService {
   constructor(basePath = './data') {
     this.fileManager = new FileManager(basePath);
     this.basePath = basePath;
+    this.firmaService = new FirmaService(basePath);
   }
 
   /**
@@ -20,6 +22,12 @@ export class OffertenService {
     const kunde = await this.fileManager.findKunde(data.kundeId);
     if (!kunde) {
       throw new Error(`Kunde '${data.kundeId}' nicht gefunden`);
+    }
+
+    // MwSt-Satz von Firma holen, falls nicht explizit angegeben
+    if (data.mwstSatz === undefined || data.mwstSatz === null) {
+      const firma = await this.firmaService.getFirma();
+      data.mwstSatz = firma.mwstSatz || 0;
     }
 
     // Offertennummer generieren

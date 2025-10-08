@@ -13,19 +13,24 @@ import ContextMenu from './components/layout/ContextMenu';
 import StartupScreen from './components/screens/StartupScreen';
 import KundenScreen from './components/screens/KundenScreen';
 import OffertenScreen from './components/screens/OffertenScreen';
+import RechnungenScreen from './components/screens/RechnungenScreen';
 
 // Modal Components
 import KundenModal from './components/modals/KundenModal';
 import OffertenModal from './components/modals/OffertenModal';
+import RechnungenModal from './components/modals/RechnungenModal';
 import PositionenModal from './components/modals/PositionenModal';
+import StatusChangeMenu from './components/modals/StatusChangeMenu';
 
 // Hooks
 import useKunden from './hooks/useKunden';
 import useOfferten from './hooks/useOfferten';
+import useRechnungen from './hooks/useRechnungen';
 
 // Services
 import kundenService from './services/kundenService';
 import offertenService from './services/offertenService';
+import rechnungenService from './services/rechnungenService';
 
 // Global Styles
 const GlobalStyle = createGlobalStyle`
@@ -239,16 +244,44 @@ function App() {
   // Data Hooks
   const { kunden, loading: kundenLoading, error: kundenError, refreshKunden } = useKunden();
   const { offerten, loading: offertenLoading, error: offertenError, refreshOfferten } = useOfferten();
+  const { rechnungen, loading: rechnungenLoading, error: rechnungenError, refreshRechnungen } = useRechnungen();
   
   // Modal State
   const [kundenModalOpen, setKundenModalOpen] = useState(false);
   const [offertenModalOpen, setOffertenModalOpen] = useState(false);
+  const [rechnungenModalOpen, setRechnungenModalOpen] = useState(false);
   const [positionenModalOpen, setPositionenModalOpen] = useState(false);
+  const [statusChangeMenuOpen, setStatusChangeMenuOpen] = useState(false);
   const [selectedKunde, setSelectedKunde] = useState(null);
   const [selectedOfferte, setSelectedOfferte] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);  // F-Key Handler
+  const [selectedRechnung, setSelectedRechnung] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  
+  // Filter State
+  const [statusFilter, setStatusFilter] = useState('entwurf');
+  const [rechnungStatusFilter, setRechnungStatusFilter] = useState('entwurf');
+  
+  // Filtered Offerten
+  const filteredOfferten = React.useMemo(() => {
+    if (!offerten || offerten.length === 0) return [];
+    if (statusFilter === 'alle') return offerten;
+    return offerten.filter(offerte => offerte.status === statusFilter);
+  }, [offerten, statusFilter]);
+  
+  // Filtered Rechnungen
+  const filteredRechnungen = React.useMemo(() => {
+    if (!rechnungen || rechnungen.length === 0) return [];
+    if (rechnungStatusFilter === 'alle') return rechnungen;
+    return rechnungen.filter(rechnung => rechnung.status === rechnungStatusFilter);
+  }, [rechnungen, rechnungStatusFilter]);
+  
+  // Reset selection when filter changes
+  React.useEffect(() => {
+    setSelectedIndex(0);
+  }, [statusFilter, rechnungStatusFilter]);
+  
+  // F-Key Handler
   const handleFKeyPress = (action) => {
-    setSelectedIndex(0); // Reset selection when switching screens
     
     switch (action) {
       case 'help':
@@ -263,11 +296,12 @@ function App() {
         
       case 'offers':
         setCurrentScreen('offers');
-        setStatusMessage(`Offerten (${Array.isArray(offerten) ? offerten.length : 0}) - ↑↓ Navigation, Enter=Bearbeiten, F3=Neu`);
+        setStatusMessage(`Offerten (${Array.isArray(offerten) ? offerten.length : 0}) - ↑↓ Navigation, Enter=Bearbeiten, F3=Neu, S=Status, R=→Rechnung`);
         break;
         
       case 'invoices':
-        setStatusMessage('F4 = Rechnungen (Feature in Entwicklung)');
+        setCurrentScreen('invoices');
+        setStatusMessage(`Rechnungen (${Array.isArray(rechnungen) ? rechnungen.length : 0}) - ↑↓ Navigation, Enter=Bearbeiten, F4=Neu, P=PDF`);
         break;
         
       case 'refresh':
@@ -292,7 +326,11 @@ function App() {
 
   // Context Menu Action Handler
   const handleContextAction = (action) => {
-    const currentData = currentScreen === 'customers' ? kunden : offerten;
+    let currentData;
+    if (currentScreen === 'customers') currentData = kunden;
+    else if (currentScreen === 'offers') currentData = filteredOfferten;
+    else if (currentScreen === 'invoices') currentData = filteredRechnungen;
+    
     const selectedItem = currentData && currentData[selectedIndex];
     
     switch (action) {
@@ -305,6 +343,10 @@ function App() {
           setSelectedOfferte(null);
           setOffertenModalOpen(true);
           setStatusMessage('Neue Offerte erstellen...');
+        } else if (currentScreen === 'invoices') {
+          setSelectedRechnung(null);
+          setRechnungenModalOpen(true);
+          setStatusMessage('Neue Rechnung erstellen...');
         }
         break;
         
@@ -318,6 +360,10 @@ function App() {
             setSelectedOfferte(selectedItem);
             setOffertenModalOpen(true);
             setStatusMessage(`Offerte ${selectedItem.nummer} bearbeiten...`);
+          } else if (currentScreen === 'invoices') {
+            setSelectedRechnung(selectedItem);
+            setRechnungenModalOpen(true);
+            setStatusMessage(`Rechnung ${selectedItem.nummer} bearbeiten...`);
           }
         }
         break;
@@ -332,12 +378,22 @@ function App() {
             setSelectedOfferte(selectedItem);
             setPositionenModalOpen(true);
             setStatusMessage(`Positionen für Offerte ${selectedItem.nummer}`);
+          } else if (currentScreen === 'invoices') {
+            // Für Rechnungen Positionen öffnen
+            setSelectedRechnung(selectedItem);
+            setPositionenModalOpen(true);
+            setStatusMessage(`Positionen für Rechnung ${selectedItem.nummer}`);
           }
         }
         break;
         
       case 'delete':
-        if (selectedItem && confirm(`${currentScreen === 'customers' ? 'Kunde' : 'Offerte'} wirklich löschen?`)) {
+        let entityType = 'Element';
+        if (currentScreen === 'customers') entityType = 'Kunde';
+        else if (currentScreen === 'offers') entityType = 'Offerte';
+        else if (currentScreen === 'invoices') entityType = 'Rechnung';
+        
+        if (selectedItem && confirm(`${entityType} wirklich löschen?`)) {
           handleDelete(selectedItem);
         }
         break;
@@ -345,6 +401,24 @@ function App() {
       case 'pdf':
         if (currentScreen === 'offers' && selectedItem) {
           handlePdfExport(selectedItem);
+        } else if (currentScreen === 'invoices' && selectedItem) {
+          handleRechnungPdfExport(selectedItem);
+        }
+        break;
+        
+      case 'status':
+        if (currentScreen === 'offers' && selectedItem) {
+          setStatusChangeMenuOpen(true);
+          setStatusMessage('Offerten-Status ändern...');
+        } else if (currentScreen === 'invoices' && selectedItem) {
+          setStatusChangeMenuOpen(true);
+          setStatusMessage('Rechnungs-Status ändern...');
+        }
+        break;
+        
+      case 'toInvoice':
+        if (currentScreen === 'offers' && selectedItem && selectedItem.status === 'angenommen') {
+          handleOfferteToRechnung(selectedItem);
         }
         break;
         
@@ -364,11 +438,17 @@ function App() {
         await offertenService.delete(item.id);
         await refreshOfferten();
         setStatusMessage('Offerte erfolgreich gelöscht');
+      } else if (currentScreen === 'invoices') {
+        await rechnungenService.delete(item.id);
+        await refreshRechnungen();
+        setStatusMessage('Rechnung erfolgreich gelöscht');
       }
       
       // Reset selection if deleted item was selected
       if (selectedIndex >= 0) {
-        const newData = currentScreen === 'customers' ? kunden : offerten;
+        const newData = currentScreen === 'customers' ? kunden : 
+                       currentScreen === 'offers' ? offerten : 
+                       currentScreen === 'invoices' ? rechnungen : [];
         if (selectedIndex >= newData.length - 1) {
           setSelectedIndex(Math.max(0, newData.length - 2));
         }
@@ -401,15 +481,68 @@ function App() {
     }
   };
 
+  // Offerte zu Rechnung konvertieren
+  const handleOfferteToRechnung = async (offerte) => {
+    try {
+      setStatusMessage(`Erstelle Rechnung aus Offerte ${offerte.nummer}...`);
+      setModalLoading(true);
+      
+      const rechnung = await rechnungenService.createFromOfferte(offerte.id);
+      
+      if (rechnung) {
+        await refreshRechnungen();
+        setStatusMessage(`✅ Rechnung ${rechnung.nummer} erfolgreich erstellt aus Offerte ${offerte.nummer}`);
+        
+        // Optional: Zum Rechnungen-Screen wechseln
+        setTimeout(() => {
+          setCurrentScreen('invoices');
+          setStatusMessage(`Rechnungen (${Array.isArray(rechnungen) ? rechnungen.length + 1 : 1}) - Neue Rechnung ${rechnung.nummer} erstellt`);
+        }, 2000);
+      } else {
+        setStatusMessage('Fehler beim Erstellen der Rechnung');
+      }
+    } catch (error) {
+      console.error('Fehler beim Erstellen der Rechnung:', error);
+      setStatusMessage('Fehler: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Rechnung PDF Export Handler
+  const handleRechnungPdfExport = async (rechnung) => {
+    try {
+      setStatusMessage(`PDF-Export für Rechnung ${rechnung.nummer} wird erstellt...`);
+      setModalLoading(true);
+      
+      const result = await rechnungenService.exportToPdf(rechnung.id);
+      
+      if (result.success) {
+        setStatusMessage(`PDF-Export für Rechnung ${rechnung.nummer} erfolgreich heruntergeladen`);
+      } else {
+        setStatusMessage('PDF-Export fehlgeschlagen');
+      }
+    } catch (error) {
+      console.error('Fehler beim PDF-Export:', error);
+      setStatusMessage('Fehler beim PDF-Export: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   // Keyboard Navigation Handler
   const handleKeyDown = (event) => {
     // Skip if modal is open or not on list screens
-    if (kundenModalOpen || offertenModalOpen || positionenModalOpen || 
-        (currentScreen !== 'customers' && currentScreen !== 'offers')) {
+    if (kundenModalOpen || offertenModalOpen || positionenModalOpen || statusChangeMenuOpen ||
+        (currentScreen !== 'customers' && currentScreen !== 'offers' && currentScreen !== 'invoices')) {
       return;
     }
 
-    const currentData = currentScreen === 'customers' ? kunden : offerten;
+    let currentData;
+    if (currentScreen === 'customers') currentData = kunden;
+    else if (currentScreen === 'offers') currentData = filteredOfferten;
+    else if (currentScreen === 'invoices') currentData = filteredRechnungen;
+    
     if (!currentData || currentData.length === 0) return;
 
     switch (event.key) {
@@ -448,9 +581,33 @@ function App() {
         
       case 'p':
       case 'P':
-        if (currentScreen === 'offers') {
+        if (currentScreen === 'offers' || currentScreen === 'invoices') {
           event.preventDefault();
           handleContextAction('pdf');
+        }
+        break;
+        
+      case 's':
+      case 'S':
+        if (currentScreen === 'offers' && offerten && offerten.length > 0) {
+          event.preventDefault();
+          setStatusChangeMenuOpen(true);
+        } else if (currentScreen === 'invoices' && rechnungen && rechnungen.length > 0) {
+          event.preventDefault();
+          setStatusChangeMenuOpen(true);
+        }
+        break;
+        
+      case 'r':
+      case 'R':
+        if (currentScreen === 'offers' && filteredOfferten && filteredOfferten.length > 0) {
+          event.preventDefault();
+          const offerte = filteredOfferten[selectedIndex];
+          if (offerte && offerte.status === 'angenommen') {
+            handleOfferteToRechnung(offerte);
+          } else {
+            setStatusMessage('Nur angenommene Offerten können in Rechnungen umgewandelt werden');
+          }
         }
         break;
         
@@ -463,7 +620,7 @@ function App() {
   React.useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [currentScreen, selectedIndex, kunden, offerten, kundenModalOpen, offertenModalOpen, positionenModalOpen]);
+  }, [currentScreen, selectedIndex, kunden, filteredOfferten, kundenModalOpen, offertenModalOpen, positionenModalOpen, statusChangeMenuOpen]);
 
   // Row Selection Handler
   const handleRowClick = (index) => {
@@ -481,6 +638,11 @@ function App() {
     setOffertenModalOpen(true);
   };
 
+  const handleRechnungDoubleClick = (rechnung, index) => {
+    setSelectedRechnung(rechnung);
+    setPositionenModalOpen(true);
+  };
+
   const handleKundeModalClose = () => {
     setKundenModalOpen(false);
     setSelectedKunde(null);
@@ -491,13 +653,83 @@ function App() {
     setSelectedOfferte(null);
   };
 
+  const handleRechnungenModalClose = () => {
+    setRechnungenModalOpen(false);
+    setSelectedRechnung(null);
+  };
+
   const handlePositionenModalClose = () => {
     setPositionenModalOpen(false);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    setModalLoading(true);
+    try {
+      if (currentScreen === 'offers') {
+        if (!offerten || offerten.length === 0) return;
+        
+        const offerte = offerten[selectedIndex];
+        if (!offerte) return;
+
+        await offertenService.update(offerte.id, {
+          ...offerte,
+          status: newStatus
+        });
+        
+        await refreshOfferten();
+        setStatusMessage(`Offerten-Status geändert zu: ${newStatus}`);
+      } else if (currentScreen === 'invoices') {
+        if (!rechnungen || rechnungen.length === 0) return;
+        
+        const rechnung = rechnungen[selectedIndex];
+        if (!rechnung) return;
+
+        await rechnungenService.update(rechnung.id, {
+          ...rechnung,
+          status: newStatus
+        });
+        
+        await refreshRechnungen();
+        setStatusMessage(`Rechnungs-Status geändert zu: ${newStatus}`);
+      }
+      
+      setStatusChangeMenuOpen(false);
+    } catch (error) {
+      console.error('Fehler beim Ändern des Status:', error);
+      setStatusMessage('Fehler beim Ändern des Status');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleStatusChangeMenuClose = () => {
+    setStatusChangeMenuOpen(false);
   };
 
   const handlePositionenEdit = (offerte) => {
     setSelectedOfferte(offerte);
     setPositionenModalOpen(true);
+  };
+
+  const handleRechnungPositionenEdit = (rechnung) => {
+    setSelectedRechnung(rechnung);
+    setPositionenModalOpen(true);
+  };
+
+  const handleEditEntityFromPositionen = (entity) => {
+    // Prüfen ob es eine Rechnung oder Offerte ist
+    // Rechnungen haben 'faelligkeitsdatum' oder 'qrReferenz', Offerten haben 'gültigBis'
+    const isRechnung = entity.faelligkeitsdatum || entity.qrReferenz || entity.nummer?.startsWith('REC-');
+    
+    if (isRechnung) {
+      // Es ist eine Rechnung
+      setSelectedRechnung(entity);
+      setRechnungenModalOpen(true);
+    } else {
+      // Es ist eine Offerte
+      setSelectedOfferte(entity);
+      setOffertenModalOpen(true);
+    }
   };
 
   const handlePositionenSave = async (positionenData) => {
@@ -562,6 +794,28 @@ function App() {
     }
   };
 
+  const handleRechnungSave = async (rechnungData) => {
+    setModalLoading(true);
+    try {
+      if (selectedRechnung) {
+        // Update existing rechnung
+        await rechnungenService.update(selectedRechnung.id, rechnungData);
+      } else {
+        // Create new rechnung
+        await rechnungenService.create(rechnungData);
+      }
+      
+      // Refresh data and close modal
+      await refreshRechnungen();
+      handleRechnungenModalClose();
+    } catch (error) {
+      console.error('Fehler beim Speichern der Rechnung:', error);
+      alert('Fehler beim Speichern der Rechnung: ' + (error.message || error.toString()));
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   // Screen Rendering
   const renderScreen = () => {
     switch (currentScreen) {
@@ -590,10 +844,26 @@ function App() {
       case 'offers':
         return (
           <OffertenScreen 
-            offerten={offerten}
+            offerten={filteredOfferten}
+            allOfferten={offerten}
             selectedIndex={selectedIndex}
             onRowClick={handleRowClick}
             onDoubleClick={handleOfferteDoubleClick}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+        );
+        
+      case 'invoices':
+        return (
+          <RechnungenScreen 
+            rechnungen={filteredRechnungen}
+            allRechnungen={rechnungen}
+            selectedIndex={selectedIndex}
+            onRowClick={handleRowClick}
+            onDoubleClick={handleRechnungDoubleClick}
+            statusFilter={rechnungStatusFilter}
+            onStatusFilterChange={setRechnungStatusFilter}
           />
         );
         
@@ -612,13 +882,18 @@ function App() {
         </ContentArea>
         
         {/* Context Menu for list screens - integrated into layout */}
-        {(currentScreen === 'customers' || currentScreen === 'offers') && (
+        {(currentScreen === 'customers' || currentScreen === 'offers' || currentScreen === 'invoices') && (
           <ContextMenu
             currentScreen={currentScreen}
             selectedIndex={selectedIndex}
-            data={currentScreen === 'customers' ? kunden : offerten}
+            data={
+              currentScreen === 'customers' ? kunden : 
+              currentScreen === 'offers' ? filteredOfferten :
+              currentScreen === 'invoices' ? filteredRechnungen :
+              []
+            }
             onAction={handleContextAction}
-            showPdfExport={currentScreen === 'offers'}
+            showPdfExport={currentScreen === 'offers' || currentScreen === 'invoices'}
           />
         )}
         
@@ -648,13 +923,43 @@ function App() {
         loading={modalLoading}
       />
       
+      <RechnungenModal
+        isOpen={rechnungenModalOpen}
+        onClose={handleRechnungenModalClose}
+        rechnung={selectedRechnung}
+        kunden={kunden}
+        onSave={handleRechnungSave}
+        onPositionenEdit={handleRechnungPositionenEdit}
+        loading={modalLoading}
+      />
+      
       <PositionenModal
         isOpen={positionenModalOpen}
         onClose={handlePositionenModalClose}
-        offerte={selectedOfferte}
+        offerte={selectedOfferte || selectedRechnung}
         onSave={handlePositionenSave}
+        onEditEntity={handleEditEntityFromPositionen}
         loading={modalLoading}
       />
+      
+      {/* Status Change Menu */}
+      {statusChangeMenuOpen && currentScreen === 'offers' && offerten && offerten.length > 0 && (
+        <StatusChangeMenu
+          currentStatus={offerten[selectedIndex]?.status || 'entwurf'}
+          onStatusChange={handleStatusChange}
+          onClose={handleStatusChangeMenuClose}
+          entityType="offers"
+        />
+      )}
+      
+      {statusChangeMenuOpen && currentScreen === 'invoices' && rechnungen && rechnungen.length > 0 && (
+        <StatusChangeMenu
+          currentStatus={rechnungen[selectedIndex]?.status || 'entwurf'}
+          onStatusChange={handleStatusChange}
+          onClose={handleStatusChangeMenuClose}
+          entityType="invoices"
+        />
+      )}
     </ThemeProvider>
   );
 }

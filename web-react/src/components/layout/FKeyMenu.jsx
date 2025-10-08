@@ -5,14 +5,14 @@ import { theme } from '../../themes/terminal';
 const FKeyContainer = styled.div`
   background: ${theme.colors.bgSecondary};
   border-top: 3px solid ${theme.colors.accentBlue};
-  padding: ${theme.spacing.xl} ${theme.spacing.lg};
-  margin-top: ${theme.spacing.lg};
-  margin-bottom: ${theme.spacing.lg};
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
+  margin-top: 0;
+  margin-bottom: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${theme.spacing.lg};
+  gap: ${theme.spacing.md};
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
   
   /* Mobile improvements */

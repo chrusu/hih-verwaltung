@@ -6,6 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
+import QRCode from 'qrcode';
 import { FileManager } from '../fileManager.js';
 import { OffertenService } from './offertenService.js';
 import { KundenService } from './kundenService.js';
@@ -401,6 +402,380 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Generiert QR-Code für Swiss QR-Bill
+   * @param {Object} rechnungData - Rechnung mit IBAN, Betrag, Referenz, Firma, Kunde
+   * @returns {Promise<string>} Base64-encodierter QR-Code
+   */
+  async generateSwissQRCode(rechnungData) {
+    const { iban, betrag, referenz, firmendaten, kunde } = rechnungData;
+    
+    // Swiss QR-Bill Payload nach ISO 20022 Standard
+    const qrPayload = [
+      'SPC',                          // QRType
+      '0200',                         // Version
+      '1',                            // Coding Type (UTF-8)
+      iban.replace(/\s/g, ''),        // IBAN ohne Leerzeichen
+      'K',                            // Creditor Address Type (K=structured, S=combined)
+      firmendaten.name || '',         // Creditor Name
+      firmendaten.adresse?.strasse || '', // Creditor Street
+      '',                             // Creditor Building Number (optional)
+      firmendaten.adresse?.plz || '', // Creditor Postal Code
+      firmendaten.adresse?.ort || '', // Creditor Town
+      'CH',                           // Creditor Country
+      '',                             // Ultimate Creditor Address Type (optional)
+      '',                             // Ultimate Creditor Name
+      '',                             // Ultimate Creditor Street
+      '',                             // Ultimate Creditor Building Number
+      '',                             // Ultimate Creditor Postal Code
+      '',                             // Ultimate Creditor Town
+      '',                             // Ultimate Creditor Country
+      betrag.toFixed(2),              // Amount (2 decimals)
+      'CHF',                          // Currency
+      'K',                            // Debtor Address Type
+      kunde.name || '',               // Debtor Name
+      kunde.adresse?.strasse || '',   // Debtor Street
+      '',                             // Debtor Building Number
+      kunde.adresse?.plz || '',       // Debtor Postal Code
+      kunde.adresse?.ort || '',       // Debtor Town
+      kunde.adresse?.land || 'CH',    // Debtor Country
+      'QRR',                          // Reference Type (QRR=QR-Reference)
+      referenz,                       // Reference
+      '',                             // Unstructured Message
+      'EPD',                          // Billing Information
+      ''                              // Alternative Scheme Parameters
+    ].join('\r\n');
+    
+    // QR-Code mit Error Correction Level M (15%)
+    const qrCodeDataUrl = await QRCode.toDataURL(qrPayload, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 200,
+      margin: 0
+    });
+    
+    return qrCodeDataUrl;
+  }
+
+  /**
+   * Generiert LaTeX-Content für Rechnung mit Swiss QR-Bill
+   */
+  async generateRechnungLatex(rechnungNummer) {
+    // Rechnung laden (importieren wir bei Bedarf)
+    const { RechnungenService } = await import('./rechnungenService.js');
+    const rechnungenService = new RechnungenService(this.basePath);
+    
+    const rechnungDetails = await rechnungenService.getRechnung(rechnungNummer);
+    if (!rechnungDetails) {
+      throw new Error(`Rechnung '${rechnungNummer}' nicht gefunden`);
+    }
+
+    // Kunde laden
+    const kunde = await this.kundenService.getKunde(rechnungDetails.kundeId);
+    if (!kunde) {
+      throw new Error(`Kunde für Rechnung '${rechnungNummer}' nicht gefunden`);
+    }
+
+    // Positionen laden
+    const positionen = await rechnungenService.getPositionen(rechnungNummer);
+
+    // Firmendaten laden
+    const firmendaten = await this.loadFirmenDaten();
+
+    // QR-Code generieren
+    const qrCodeDataUrl = await this.generateSwissQRCode({
+      iban: rechnungDetails.iban,
+      betrag: rechnungDetails.gesamtBrutto,
+      referenz: rechnungDetails.qrReferenz,
+      firmendaten: firmendaten,
+      kunde: kunde
+    });
+
+    // QR-Code als Datei speichern
+    const qrCodePath = path.join(this.outputDir, `qr_${rechnungDetails.nummer}.png`);
+    const base64Data = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
+    await fs.writeFile(qrCodePath, base64Data, 'base64');
+
+    // Kundenadresse formatieren
+    const kundenAdresse = this.formatKundenAdresse(kunde);
+
+    // Positionen formatieren (gleich wie bei Offerten)
+    const positionenLatex = this.formatPositionenRechnung(positionen, rechnungDetails);
+
+    // LaTeX-Template generieren
+    const latexContent = this.generateRechnungLatexTemplate({
+      rechnung: rechnungDetails,
+      kunde: kunde,
+      firmendaten: firmendaten,
+      kundenAdresse: kundenAdresse,
+      positionenLatex: positionenLatex,
+      qrCodePath: path.relative(this.outputDir, qrCodePath)
+    });
+
+    return latexContent;
+  }
+
+  /**
+   * Formatiert Rechnungspositionen für LaTeX
+   */
+  formatPositionenRechnung(positionen, rechnungDetails) {
+    if (!positionen || positionen.length === 0) {
+      return 'Keine Positionen vorhanden.';
+    }
+
+    let latex = '\\begin{longtable}{|>{\\centering}p{1cm}|p{7cm}|>{\\centering}p{2cm}|>{\\centering}p{2cm}|>{\\centering\\arraybackslash}p{2cm}|}\n';
+    latex += '\\hline\n';
+    latex += '\\textbf{Pos.} & \\textbf{Beschreibung} & \\textbf{Menge} & \\textbf{Preis} & \\textbf{Total} \\\\\n';
+    latex += '\\hline\n';
+    latex += '\\endfirsthead\n';
+    latex += '\\hline\n';
+    latex += '\\textbf{Pos.} & \\textbf{Beschreibung} & \\textbf{Menge} & \\textbf{Preis} & \\textbf{Total} \\\\\n';
+    latex += '\\hline\n';
+    latex += '\\endhead\n';
+    latex += '\\hline\n';
+    latex += '\\endfoot\n';
+    latex += '\\hline\n';
+    latex += '\\endlastfoot\n';
+
+    positionen.forEach((pos, index) => {
+      const beschreibung = this.escapeLatex(pos.beschreibung || '');
+      const positionNr = pos.position || (index + 1);
+      const menge = `${pos.menge || 0} ${pos.einheit || ''}`;
+      const preis = `CHF ${(pos.einzelpreis || 0).toFixed(2)}`;
+      const total = `CHF ${(pos.gesamtpreis || 0).toFixed(2)}`;
+      
+      latex += `${positionNr} & ${beschreibung} & ${menge} & ${preis} & ${total} \\\\\n`;
+      latex += '\\hline\n';
+    });
+
+    latex += '\\end{longtable}\n';
+
+    // Totalsummen
+    const subtotal = positionen.reduce((sum, pos) => sum + (pos.gesamtpreis || 0), 0);
+    const mwstSatz = rechnungDetails.mwstSatz || 7.7;
+    const mwstBetrag = subtotal * (mwstSatz / 100);
+    const gesamtBrutto = subtotal + mwstBetrag;
+
+    latex += '\\vspace{1em}\n';
+    latex += '\\begin{flushright}\n';
+    latex += '\\begin{tabular}{lr}\n';
+    latex += `\\textbf{Subtotal:} & \\textbf{CHF ${subtotal.toFixed(2)}} \\\\\n`;
+    latex += `MwSt ${mwstSatz}\\%: & CHF ${mwstBetrag.toFixed(2)} \\\\\n`;
+    latex += '\\hline\n';
+    latex += `\\textbf{Total:} & \\textbf{CHF ${gesamtBrutto.toFixed(2)}} \\\\\n`;
+    latex += '\\end{tabular}\n';
+    latex += '\\end{flushright}\n';
+
+    return latex;
+  }
+
+  /**
+   * Generiert LaTeX-Template für Rechnung
+   */
+  generateRechnungLatexTemplate({ rechnung, kunde, firmendaten, kundenAdresse, positionenLatex, qrCodePath }) {
+    const formatDate = (dateString) => {
+      if (!dateString) return 'Nicht definiert';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Ungültiges Datum';
+        return date.toLocaleDateString('de-CH');
+      } catch (error) {
+        return 'Datum-Fehler';
+      }
+    };
+    
+    const datumFormatted = formatDate(rechnung.datum);
+    const faelligkeitsdatumFormatted = formatDate(rechnung.faelligkeitsdatum);
+
+    const logoPath = path.relative(this.outputDir, path.join(this.templateDir, 'Logo_Print.png'));
+
+    return `% LaTeX-Template für Rechnung ${rechnung.nummer}
+\\documentclass[11pt]{article}
+\\usepackage[margin=2.2cm]{geometry}
+\\usepackage{graphicx}
+\\usepackage{longtable}
+\\usepackage{array}
+\\usepackage{setspace}
+\\usepackage{parskip}
+\\usepackage{xcolor}
+\\usepackage{fontspec}
+\\usepackage[hidelinks]{hyperref}
+
+% Fonts
+\\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\\setmainfont{${firmendaten.font}}
+
+% Colors
+\\definecolor{brand}{HTML}{${firmendaten.brandColor}}
+\\hypersetup{colorlinks=true,linkcolor=brand,urlcolor=brand,citecolor=brand}
+\\urlstyle{same}
+
+% Header mit Logo links und Firmendaten rechts
+\\usepackage{fancyhdr}
+\\pagestyle{fancy}
+\\setlength{\\headheight}{60pt}
+\\fancyhf{}
+\\renewcommand{\\headrulewidth}{0pt}
+\\fancyhead[L]{\\includegraphics[height=2cm]{${logoPath}}}
+\\fancyhead[R]{\\begin{minipage}{7cm}\\raggedleft\\small
+${firmendaten.adresse.strasse}\\\\
+${firmendaten.adresse.plzOrt}\\\\
+\\href{tel:${firmendaten.telefon}}{\\textcolor{brand}{${firmendaten.telefon}}}\\\\
+\\href{mailto:${firmendaten.email}}{\\textcolor{brand}{${firmendaten.email}}}
+\\end{minipage}}
+\\fancyfoot[C]{\\thepage}
+
+\\begin{document}
+
+% Kundenadresse
+\\vspace*{8mm}
+\\noindent\\begin{flushright}
+\\begin{minipage}{8cm}
+\\small ${kundenAdresse}
+\\end{minipage}
+\\end{flushright}
+\\par\\vspace{10mm}
+
+% Titel
+\\noindent{\\LARGE\\bfseries Rechnung ${rechnung.nummer}}\\\\[0.25em]
+\\noindent{\\large ${this.escapeLatex(rechnung.titel)}}\\\\[0.5em]
+\\noindent{\\small Rechnungsdatum: ${datumFormatted} | Fällig: ${faelligkeitsdatumFormatted}}
+
+\\vspace{1.0em}
+
+% Beschreibung (falls vorhanden)
+${rechnung.beschreibung ? '\\section*{Beschreibung}\n' + this.escapeLatex(rechnung.beschreibung) + '\n\n' : ''}
+
+% Positionen
+\\section*{Rechnungspositionen}
+
+${positionenLatex}
+
+% Swiss QR-Bill (Schweizer Einzahlungsschein)
+\\newpage
+\\section*{Zahlung}
+
+\\subsection*{Zahlungsbedingungen}
+${this.escapeLatex(rechnung.zahlungsbedingungen)}
+
+\\vspace{1cm}
+
+\\subsection*{Swiss QR-Bill}
+\\noindent\\fbox{\\begin{minipage}{0.95\\textwidth}
+\\vspace{0.5cm}
+
+\\noindent\\textbf{Zahlungsinformationen}\\\\[0.5em]
+\\begin{tabular}{ll}
+IBAN: & ${rechnung.iban} \\\\
+Referenz: & ${rechnung.qrReferenz} \\\\
+Betrag: & CHF ${rechnung.gesamtBrutto?.toFixed(2) || '0.00'} \\\\
+Fällig: & ${faelligkeitsdatumFormatted} \\\\
+\\end{tabular}
+
+\\vspace{1cm}
+
+\\noindent\\includegraphics[width=5cm]{${qrCodePath}}\\\\[0.5em]
+\\textit{Scannen Sie den QR-Code mit Ihrer Banking-App}
+
+\\vspace{0.5cm}
+\\end{minipage}}
+
+% Notizen (falls vorhanden)
+${rechnung.notizen ? '\\vspace{2em}\n\\section*{Bemerkungen}\n' + this.escapeLatex(rechnung.notizen) + '\n\n' : ''}
+
+\\vspace{2em}
+
+Vielen Dank für Ihr Vertrauen und die angenehme Zusammenarbeit.
+
+\\vspace{2cm}
+
+% Signatur
+\\noindent
+\\begin{minipage}{10cm}
+\\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
+\\textbf{${firmendaten.emailSignatur.name}}\\\\
+${firmendaten.emailSignatur.firma}\\\\[0.5em]
+${firmendaten.emailSignatur.slogan1}\\\\[0.3em]
+${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
+\\href{${firmendaten.emailSignatur.website}}{\\textcolor{brand}{${firmendaten.emailSignatur.linkText}}}
+\\end{minipage}
+
+\\end{document}`;
+  }
+
+  /**
+   * Exportiert Rechnung als PDF
+   */
+  async exportRechnungPdf(rechnungNummer) {
+    try {
+      // LaTeX-Content generieren
+      const latexContent = await this.generateRechnungLatex(rechnungNummer);
+
+      // Ausgabeverzeichnis sicherstellen
+      await this.fileManager.ensureDirectory(this.outputDir);
+
+      // LaTeX-Datei schreiben
+      const texFilename = `rechnung_${rechnungNummer}.tex`;
+      const texPath = path.join(this.outputDir, texFilename);
+      await fs.writeFile(texPath, latexContent, 'utf8');
+
+      // XeLaTeX ausführen (2x für Referenzen)
+      console.log(`Generiere PDF für Rechnung ${rechnungNummer}...`);
+      try {
+        execSync(`xelatex -interaction=nonstopmode -output-directory="${this.outputDir}" "${texPath}"`, {
+          cwd: this.outputDir,
+          stdio: 'pipe'
+        });
+        
+        // Zweiter Durchlauf für korrekte Seitenzahlen
+        execSync(`xelatex -interaction=nonstopmode -output-directory="${this.outputDir}" "${texPath}"`, {
+          cwd: this.outputDir,
+          stdio: 'pipe'
+        });
+      } catch (execError) {
+        // XeLaTeX kann auch bei erfolgreicher PDF-Erstellung Warnungen als Fehler werfen
+        // Wir prüfen einfach ob das PDF existiert
+        console.warn('XeLaTeX Warnung (kann ignoriert werden):', execError.message);
+      }
+
+      // PDF-Pfad
+      const pdfFilename = `rechnung_${rechnungNummer}.pdf`;
+      const pdfPath = path.join(this.outputDir, pdfFilename);
+
+      // Aufräumen: Temporäre LaTeX-Dateien löschen
+      const extensions = ['.tex', '.aux', '.log', '.out'];
+      for (const ext of extensions) {
+        try {
+          await fs.unlink(path.join(this.outputDir, `rechnung_${rechnungNummer}${ext}`));
+        } catch (error) {
+          // Ignorieren wenn Datei nicht existiert
+        }
+      }
+
+      // QR-Code PNG löschen
+      try {
+        await fs.unlink(path.join(this.outputDir, `qr_${rechnungNummer}.png`));
+      } catch (error) {
+        // Ignorieren
+      }
+
+      // Prüfen ob PDF existiert
+      try {
+        await fs.access(pdfPath);
+        return {
+          success: true,
+          pdfPath: pdfPath,
+          filename: pdfFilename
+        };
+      } catch (error) {
+        throw new Error('PDF-Datei wurde nicht erstellt');
+      }
+
+    } catch (error) {
+      throw new Error(`PDF-Export fehlgeschlagen: ${error.message}`);
     }
   }
 }

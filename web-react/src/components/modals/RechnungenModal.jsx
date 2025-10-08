@@ -18,10 +18,10 @@ const {
   ErrorMessage
 } = FormComponents;
 
-const OffertenModal = ({ 
+const RechnungenModal = ({ 
   isOpen, 
   onClose, 
-  offerte = null, 
+  rechnung = null, 
   kunden = [],
   onSave,
   onPositionenEdit,
@@ -31,10 +31,12 @@ const OffertenModal = ({
     titel: '',
     kundeId: '',
     datum: '',
-    gültigBis: '',
+    faelligkeitsdatum: '',
     status: 'entwurf',
     zahlungsbedingungen: '30 Tage netto',
     mwstSatz: 0,
+    iban: '',
+    qrReferenz: '',
     beschreibung: '',
     notizen: ''
   });
@@ -42,13 +44,15 @@ const OffertenModal = ({
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [defaultMwstSatz, setDefaultMwstSatz] = useState(0);
+  const [defaultIban, setDefaultIban] = useState('');
 
-  // Lade Standard-MwSt-Satz von Firma
+  // Lade Standard-Einstellungen von Firma
   useEffect(() => {
     const loadFirmaSettings = async () => {
       try {
         const firma = await firmaService.get();
         setDefaultMwstSatz(firma?.mwstSatz || 0);
+        setDefaultIban(firma?.iban || '');
       } catch (error) {
         console.error('Fehler beim Laden der Firmeneinstellungen:', error);
       }
@@ -56,9 +60,9 @@ const OffertenModal = ({
     loadFirmaSettings();
   }, []);
 
-  // Initialize form data when offerte changes
+  // Initialize form data when rechnung changes
   useEffect(() => {
-    if (offerte) {
+    if (rechnung) {
       // Format dates for input fields
       const formatDate = (dateString) => {
         if (!dateString) return '';
@@ -67,18 +71,20 @@ const OffertenModal = ({
       };
 
       setFormData({
-        titel: offerte.titel || '',
-        kundeId: offerte.kundeId || '',
-        datum: formatDate(offerte.datum),
-        gültigBis: formatDate(offerte.gültigBis),
-        status: offerte.status || 'entwurf',
-        zahlungsbedingungen: offerte.zahlungsbedingungen || '30 Tage netto',
-        mwstSatz: offerte.mwstSatz !== undefined ? offerte.mwstSatz : defaultMwstSatz,
-        beschreibung: offerte.beschreibung || '',
-        notizen: offerte.notizen || ''
+        titel: rechnung.titel || '',
+        kundeId: rechnung.kundeId || '',
+        datum: formatDate(rechnung.datum),
+        faelligkeitsdatum: formatDate(rechnung.faelligkeitsdatum),
+        status: rechnung.status || 'entwurf',
+        zahlungsbedingungen: rechnung.zahlungsbedingungen || '30 Tage netto',
+        mwstSatz: rechnung.mwstSatz !== undefined ? rechnung.mwstSatz : defaultMwstSatz,
+        iban: rechnung.iban || defaultIban,
+        qrReferenz: rechnung.qrReferenz || '',
+        beschreibung: rechnung.beschreibung || '',
+        notizen: rechnung.notizen || ''
       });
     } else {
-      // Reset for new offerte
+      // Reset for new rechnung
       const today = new Date();
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
       
@@ -86,41 +92,37 @@ const OffertenModal = ({
         titel: '',
         kundeId: '',
         datum: today.toISOString().split('T')[0],
-        gültigBis: nextMonth.toISOString().split('T')[0],
+        faelligkeitsdatum: nextMonth.toISOString().split('T')[0],
         status: 'entwurf',
         zahlungsbedingungen: '30 Tage netto',
         mwstSatz: defaultMwstSatz,
+        iban: defaultIban,
+        qrReferenz: '',
         beschreibung: '',
         notizen: ''
       });
     }
     setErrors({});
     setTouched({});
-  }, [offerte, isOpen, defaultMwstSatz]);
+  }, [rechnung, isOpen, defaultMwstSatz, defaultIban]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
+    setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: null
-      }));
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
   const handleBlur = (field) => {
-    setTouched(prev => ({
-      ...prev,
-      [field]: true
-    }));
+    setTouched(prev => ({ ...prev, [field]: true }));
   };
 
-  const validateForm = () => {
+  const validate = () => {
     const newErrors = {};
     
     if (!formData.titel.trim()) {
@@ -132,17 +134,30 @@ const OffertenModal = ({
     }
     
     if (!formData.datum) {
-      newErrors.datum = 'Datum ist erforderlich';
+      newErrors.datum = 'Rechnungsdatum ist erforderlich';
     }
     
-    if (!formData.gültigBis) {
-      newErrors.gültigBis = 'Gültigkeitsdatum ist erforderlich';
-    } else if (new Date(formData.gültigBis) <= new Date(formData.datum)) {
-      newErrors.gültigBis = 'Gültigkeitsdatum muss nach dem Offertendatum liegen';
+    if (!formData.faelligkeitsdatum) {
+      newErrors.faelligkeitsdatum = 'Fälligkeitsdatum ist erforderlich';
+    }
+    
+    // Validate dates
+    if (formData.datum && formData.faelligkeitsdatum) {
+      const rechnungsdatum = new Date(formData.datum);
+      const faelligkeitsdatum = new Date(formData.faelligkeitsdatum);
+      
+      if (faelligkeitsdatum < rechnungsdatum) {
+        newErrors.faelligkeitsdatum = 'Fälligkeitsdatum muss nach dem Rechnungsdatum liegen';
+      }
     }
     
     if (formData.mwstSatz < 0 || formData.mwstSatz > 100) {
-      newErrors.mwstSatz = 'MwSt-Satz muss zwischen 0 und 100% liegen';
+      newErrors.mwstSatz = 'MwSt-Satz muss zwischen 0 und 100 liegen';
+    }
+
+    // Validate IBAN format (basic)
+    if (formData.iban && !formData.iban.match(/^CH\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d$/)) {
+      newErrors.iban = 'Ungültiges IBAN-Format (CH.. erforderlich)';
     }
     
     return newErrors;
@@ -151,20 +166,34 @@ const OffertenModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const formErrors = validateForm();
-    setErrors(formErrors);
+    // Mark all fields as touched
+    const allTouched = Object.keys(formData).reduce((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {});
+    setTouched(allTouched);
     
-    if (Object.keys(formErrors).length === 0) {
-      onSave(formData);
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
+    
+    // Prepare data for submission
+    const submitData = {
+      ...formData,
+      mwstSatz: parseFloat(formData.mwstSatz)
+    };
+    
+    onSave(submitData);
   };
 
   const handleCancel = () => {
     onClose();
   };
 
-  const isEditing = !!offerte;
-  const title = isEditing ? `Offerte bearbeiten: ${offerte?.nummer}` : 'Neue Offerte';
+  const isEditing = !!rechnung;
+  const title = isEditing ? `Rechnung bearbeiten: ${rechnung?.nummer}` : 'Neue Rechnung';
 
   return (
     <BaseModal
@@ -175,7 +204,7 @@ const OffertenModal = ({
     >
       <Form onSubmit={handleSubmit}>
         <FormSection>
-          <FormSectionTitle>Offerten-Grunddaten</FormSectionTitle>
+          <FormSectionTitle>Rechnungs-Grunddaten</FormSectionTitle>
           
           <FormGroup>
             <Label required>Titel</Label>
@@ -212,9 +241,11 @@ const OffertenModal = ({
                 <ErrorMessage>{errors.kundeId}</ErrorMessage>
               )}
             </FormGroup>
-          </FormRow>          <FormRow>
+          </FormRow>
+
+          <FormRow>
             <FormGroup>
-              <Label required>Offertendatum</Label>
+              <Label required>Rechnungsdatum</Label>
               <Input
                 type="date"
                 value={formData.datum}
@@ -228,16 +259,16 @@ const OffertenModal = ({
             </FormGroup>
             
             <FormGroup>
-              <Label required>Gültig bis</Label>
+              <Label required>Fälligkeitsdatum</Label>
               <Input
                 type="date"
-                value={formData.gültigBis}
-                onChange={(e) => handleInputChange('gültigBis', e.target.value)}
-                onBlur={() => handleBlur('gültigBis')}
+                value={formData.faelligkeitsdatum}
+                onChange={(e) => handleInputChange('faelligkeitsdatum', e.target.value)}
+                onBlur={() => handleBlur('faelligkeitsdatum')}
                 disabled={loading}
               />
-              {errors.gültigBis && touched.gültigBis && (
-                <ErrorMessage>{errors.gültigBis}</ErrorMessage>
+              {errors.faelligkeitsdatum && touched.faelligkeitsdatum && (
+                <ErrorMessage>{errors.faelligkeitsdatum}</ErrorMessage>
               )}
             </FormGroup>
             
@@ -249,16 +280,43 @@ const OffertenModal = ({
                 disabled={loading}
               >
                 <option value="entwurf">Entwurf</option>
-                <option value="versendet">Versendet</option>
-                <option value="angenommen">Angenommen</option>
-                <option value="abgelehnt">Abgelehnt</option>
+                <option value="fertig">Fertig</option>
+                <option value="gesendet">Gesendet</option>
+                <option value="bezahlt">Bezahlt</option>
               </Select>
             </FormGroup>
           </FormRow>
         </FormSection>
 
         <FormSection>
-          <FormSectionTitle>Konditionen</FormSectionTitle>
+          <FormSectionTitle>Zahlungsinformationen</FormSectionTitle>
+          
+          <FormGroup>
+            <Label required>IBAN</Label>
+            <Input
+              type="text"
+              value={formData.iban}
+              onChange={(e) => handleInputChange('iban', e.target.value)}
+              onBlur={() => handleBlur('iban')}
+              disabled={loading}
+              placeholder="CH93 0076 2011 6238 5295 7"
+            />
+            {errors.iban && touched.iban && (
+              <ErrorMessage>{errors.iban}</ErrorMessage>
+            )}
+          </FormGroup>
+
+          {isEditing && formData.qrReferenz && (
+            <FormGroup>
+              <Label>QR-Referenz</Label>
+              <Input
+                type="text"
+                value={formData.qrReferenz}
+                disabled
+                readOnly
+              />
+            </FormGroup>
+          )}
           
           <FormRow>
             <FormGroup flex={2}>
@@ -323,7 +381,7 @@ const OffertenModal = ({
                 <Label>Gesamtbetrag</Label>
                 <Input
                   type="text"
-                  value={`CHF ${offerte.gesamtBrutto?.toFixed(2) || '0.00'}`}
+                  value={`CHF ${rechnung.gesamtBrutto?.toFixed(2) || '0.00'}`}
                   disabled
                   readOnly
                 />
@@ -332,7 +390,7 @@ const OffertenModal = ({
                 <Label>Erstellt am</Label>
                 <Input
                   type="text"
-                  value={offerte.erstellt ? new Date(offerte.erstellt).toLocaleDateString('de-CH') : ''}
+                  value={rechnung.datum ? new Date(rechnung.datum).toLocaleDateString('de-CH') : ''}
                   disabled
                   readOnly
                 />
@@ -343,7 +401,7 @@ const OffertenModal = ({
                 <Label>Positionen verwalten</Label>
                 <Button
                   type="button"
-                  onClick={() => onPositionenEdit && onPositionenEdit(offerte)}
+                  onClick={() => onPositionenEdit && onPositionenEdit(rechnung)}
                   disabled={loading}
                   variant="secondary"
                   style={{ width: '100%' }}
@@ -376,4 +434,4 @@ const OffertenModal = ({
   );
 };
 
-export default OffertenModal;
+export default RechnungenModal;

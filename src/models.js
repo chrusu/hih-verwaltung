@@ -192,6 +192,21 @@ export class Offertposition {
     return bruttoPreis - (bruttoPreis * this.rabatt / 100);
   }
 
+  toJSON() {
+    return {
+      id: this.id,
+      offerteId: this.offerteId,
+      position: this.position,
+      beschreibung: this.beschreibung,
+      menge: this.menge,
+      einheit: this.einheit,
+      einzelpreis: this.einzelpreis,
+      rabatt: this.rabatt,
+      gesamtpreis: this.gesamtpreis, // Getter wird hier ausgewertet
+      kategorie: this.kategorie
+    };
+  }
+
   toCsvRow() {
     return {
       id: this.id,

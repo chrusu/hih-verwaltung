@@ -15,7 +15,9 @@ import { dirname } from 'path';
 // Services importieren
 import { KundenService } from './src/services/kundenService.js';
 import { OffertenService } from './src/services/offertenService.js';
+import { RechnungenService } from './src/services/rechnungenService.js';
 import { PdfExportService } from './src/services/pdfExportService.js';
+import { FirmaService } from './src/services/firmaService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,7 +28,9 @@ const PORT = process.env.PORT || 3000;
 // Services initialisieren
 const kundenService = new KundenService('./data');
 const offertenService = new OffertenService('./data');
+const rechnungenService = new RechnungenService('./data');
 const pdfExportService = new PdfExportService();
+const firmaService = new FirmaService('./data');
 
 // === MIDDLEWARE ===
 app.use(cors());
@@ -55,6 +59,28 @@ app.use((req, res, next) => {
 });
 
 // === API ROUTES ===
+
+// === Firma API ===
+app.get('/api/firma', async (req, res) => {
+    try {
+        const firma = await firmaService.getFirma();
+        res.json({ success: true, data: firma });
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Firmendaten:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/firma', async (req, res) => {
+    try {
+        const firma = await firmaService.updateFirma(req.body);
+        console.log(`✅ Firmendaten aktualisiert`);
+        res.json({ success: true, data: firma });
+    } catch (error) {
+        console.error('❌ Fehler beim Aktualisieren der Firmendaten:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // === Kunden API ===
 app.get('/api/kunden', async (req, res) => {
@@ -376,6 +402,155 @@ app.delete('/api/offerten/:offerteId/positionen/:positionId', async (req, res) =
         res.json({ success: true, message: 'Position erfolgreich gelöscht' });
     } catch (error) {
         console.error('❌ Fehler beim Löschen der Position:', error);
+        console.error('❌ Stack trace:', error.stack);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// === Rechnungen API ===
+app.get('/api/rechnungen', async (req, res) => {
+    try {
+        const rechnungen = await rechnungenService.listRechnungen();
+        res.json({ success: true, data: rechnungen });
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Rechnungen:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/rechnungen/:id', async (req, res) => {
+    try {
+        const rechnung = await rechnungenService.getRechnung(req.params.id);
+        if (rechnung) {
+            res.json({ success: true, data: rechnung });
+        } else {
+            res.status(404).json({ success: false, error: 'Rechnung nicht gefunden' });
+        }
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Rechnung:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/rechnungen', async (req, res) => {
+    try {
+        const neueRechnung = await rechnungenService.createRechnung(req.body);
+        console.log(`✅ Neue Rechnung erstellt: ${neueRechnung.nummer}`);
+        res.status(201).json({ success: true, data: neueRechnung });
+    } catch (error) {
+        console.error('❌ Fehler beim Erstellen der Rechnung:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/rechnungen/from-offerte/:offerteId', async (req, res) => {
+    try {
+        const rechnung = await rechnungenService.createFromOfferte(req.params.offerteId);
+        console.log(`✅ Rechnung aus Offerte erstellt: ${rechnung.nummer}`);
+        res.status(201).json({ success: true, data: rechnung });
+    } catch (error) {
+        console.error('❌ Fehler beim Erstellen der Rechnung aus Offerte:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/rechnungen/:id', async (req, res) => {
+    try {
+        const updatedRechnung = await rechnungenService.updateRechnung(req.params.id, req.body);
+        console.log(`✅ Rechnung aktualisiert: ${updatedRechnung.nummer} (${updatedRechnung.id})`);
+        res.json({ success: true, data: updatedRechnung });
+    } catch (error) {
+        console.error('❌ Fehler beim Aktualisieren der Rechnung:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.delete('/api/rechnungen/:id', async (req, res) => {
+    try {
+        await rechnungenService.deleteRechnung(req.params.id);
+        console.log(`✅ Rechnung gelöscht: ${req.params.id}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Fehler beim Löschen der Rechnung:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
+    try {
+        const positionen = await rechnungenService.getPositionen(req.params.rechnungId);
+        res.json({ success: true, data: positionen });
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Positionen:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
+    try {
+        const position = await rechnungenService.addPosition(req.params.rechnungId, req.body);
+        console.log(`✅ Position zu Rechnung hinzugefügt`);
+        res.status(201).json({ success: true, data: position });
+    } catch (error) {
+        console.error('❌ Fehler beim Hinzufügen der Position:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/rechnungen/:rechnungId/positionen/:positionId', async (req, res) => {
+    try {
+        const position = await rechnungenService.updatePosition(req.params.rechnungId, req.params.positionId, req.body);
+        console.log(`✅ Position aktualisiert`);
+        res.json({ success: true, data: position });
+    } catch (error) {
+        console.error('❌ Fehler beim Aktualisieren der Position:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.delete('/api/rechnungen/:rechnungId/positionen/:positionId', async (req, res) => {
+    try {
+        await rechnungenService.deletePosition(req.params.rechnungId, req.params.positionId);
+        console.log(`✅ Position gelöscht`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Fehler beim Löschen der Position:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// PDF Export für Rechnungen (mit QR-Rechnung)
+app.get('/api/rechnungen/:id/pdf', async (req, res) => {
+    try {
+        console.log(`🔄 Generiere PDF für Rechnung ${req.params.id}...`);
+        
+        const rechnung = await rechnungenService.getRechnung(req.params.id);
+        if (!rechnung) {
+            return res.status(404).json({ success: false, error: 'Rechnung nicht gefunden' });
+        }
+
+        // PDF mit QR-Rechnung generieren
+        const result = await pdfExportService.exportRechnungPdf(rechnung.nummer);
+
+        if (!result.success) {
+            return res.status(500).json({ success: false, error: 'PDF-Generierung fehlgeschlagen' });
+        }
+
+        const filename = result.filename;
+        const pdfPath = result.pdfPath;
+        
+        // PDF-Datei lesen und senden
+        const pdfBuffer = await fs.readFile(pdfPath);
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        res.send(pdfBuffer);
+        
+        console.log(`✅ PDF gesendet: ${filename} (${pdfBuffer.length} bytes)`);
+    } catch (error) {
+        console.error('❌ Fehler beim PDF-Export:', error);
         console.error('❌ Stack trace:', error.stack);
         res.status(500).json({ success: false, error: error.message });
     }

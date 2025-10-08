@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import * as FormComponents from '../common/FormComponents';
+import offertenService from '../../services/offertenService';
+import rechnungenService from '../../services/rechnungenService';
 
 const {
   Form,
@@ -209,6 +211,7 @@ const PositionenModal = ({
   onClose, 
   offerte,
   onSave,
+  onEditEntity,
   loading = false 
 }) => {
   const [positionen, setPositionen] = useState([]);
@@ -235,37 +238,18 @@ const PositionenModal = ({
     if (!offerte) return;
     
     try {
-      // TODO: API-Call für Positionen laden
-      // const response = await offertenService.getPositionen(offerte.id);
-      // setPositionen(response);
+      // Prüfe ob es eine Rechnung oder Offerte ist
+      const isRechnung = offerte.nummer?.startsWith('REC-');
+      const service = isRechnung ? rechnungenService : offertenService;
       
-      // Dummy-Daten für Entwicklung
-      setPositionen([
-        {
-          id: 'POS-1',
-          position: 1,
-          beschreibung: 'Beratung und Konzept',
-          menge: 5,
-          einheit: 'Std',
-          einzelpreis: 140,
-          rabatt: 0,
-          gesamtpreis: 700,
-          kategorie: 'Beratung'
-        },
-        {
-          id: 'POS-2',
-          position: 2,
-          beschreibung: 'WordPress-Entwicklung inkl. Theme-Anpassung',
-          menge: 25,
-          einheit: 'Std',
-          einzelpreis: 110,
-          rabatt: 0,
-          gesamtpreis: 2750,
-          kategorie: 'Entwicklung'
-        }
-      ]);
+      // Hole Positionen vom Backend
+      const response = await service.getPositionen(offerte.id);
+      const positionenData = response.success ? response.data : response;
+      
+      setPositionen(Array.isArray(positionenData) ? positionenData : []);
     } catch (error) {
       console.error('Fehler beim Laden der Positionen:', error);
+      setPositionen([]);
     }
   };
 
@@ -295,15 +279,21 @@ const PositionenModal = ({
         editData.rabatt
       );
 
-      // Update lokale State
+      const updatedData = { ...editData, gesamtpreis };
+      
+      // Prüfe ob es eine Rechnung oder Offerte ist
+      const isRechnung = offerte.nummer?.startsWith('REC-');
+      const service = isRechnung ? rechnungenService : offertenService;
+      
+      // API-Call zum Speichern
+      await service.updatePosition(offerte.id, editingId, updatedData);
+
+      // Update lokale State nach erfolgreichem API-Call
       setPositionen(prev => prev.map(pos => 
         pos.id === editingId 
-          ? { ...pos, ...editData, gesamtpreis }
+          ? { ...pos, ...updatedData }
           : pos
       ));
-
-      // TODO: API-Call zum Speichern
-      // await offertenService.updatePosition(offerte.id, editingId, {...editData, gesamtpreis});
 
       setEditingId(null);
       setEditData({});
@@ -322,11 +312,15 @@ const PositionenModal = ({
     if (!confirm('Position wirklich löschen?')) return;
 
     try {
-      // Update lokale State
-      setPositionen(prev => prev.filter(pos => pos.id !== positionId));
+      // Prüfe ob es eine Rechnung oder Offerte ist
+      const isRechnung = offerte.nummer?.startsWith('REC-');
+      const service = isRechnung ? rechnungenService : offertenService;
       
-      // TODO: API-Call zum Löschen
-      // await offertenService.deletePosition(offerte.id, positionId);
+      // API-Call zum Löschen
+      await service.deletePosition(offerte.id, positionId);
+      
+      // Update lokale State nach erfolgreichem API-Call
+      setPositionen(prev => prev.filter(pos => pos.id !== positionId));
     } catch (error) {
       console.error('Fehler beim Löschen der Position:', error);
       alert('Fehler beim Löschen der Position: ' + error.message);
@@ -341,18 +335,22 @@ const PositionenModal = ({
         newPosition.rabatt
       );
 
-      const neuePosition = {
-        id: `POS-${Date.now()}`, // Temporary ID
+      const positionData = {
         position: positionen.length + 1,
         ...newPosition,
         gesamtpreis
       };
 
-      // Update lokale State
-      setPositionen(prev => [...prev, neuePosition]);
+      // Prüfe ob es eine Rechnung oder Offerte ist
+      const isRechnung = offerte.nummer?.startsWith('REC-');
+      const service = isRechnung ? rechnungenService : offertenService;
+      
+      // API-Call zum Erstellen
+      const response = await service.addPosition(offerte.id, positionData);
+      const neuePosition = response.success ? response.data : response;
 
-      // TODO: API-Call zum Erstellen
-      // await offertenService.addPosition(offerte.id, neuePosition);
+      // Update lokale State mit der vom Server zurückgegebenen Position
+      setPositionen(prev => [...prev, neuePosition]);
 
       // Reset form
       setNewPosition({
@@ -767,6 +765,17 @@ const PositionenModal = ({
           >
             + Neue Position
           </Button>
+          {offerte && onEditEntity && (
+            <Button 
+              onClick={() => {
+                onClose();
+                onEditEntity(offerte);
+              }}
+              variant="secondary"
+            >
+              📝 {offerte.nummer ? 'Rechnung' : 'Offerte'} bearbeiten
+            </Button>
+          )}
         </ButtonGroup>
 
         <ButtonGroup>

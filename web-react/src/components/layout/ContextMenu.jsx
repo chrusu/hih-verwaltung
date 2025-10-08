@@ -6,13 +6,13 @@ const ContextMenuContainer = styled.div`
   background: ${theme.colors.bgSecondary};
   border-top: 2px solid ${theme.colors.accentYellow};
   border-bottom: 1px solid ${theme.colors.borderColor};
-  padding: ${theme.spacing.xl} ${theme.spacing.lg};
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
   font-family: ${theme.fonts.mono};
   font-size: ${theme.fontSizes.base};
   
   display: flex;
   flex-wrap: wrap;
-  gap: ${theme.spacing.lg};
+  gap: ${theme.spacing.md};
   align-items: center;
   justify-content: center;
   
@@ -218,8 +218,26 @@ const ContextMenu = ({
             action: 'open',
             available: hasSelection,
             primary: true
+          },
+          {
+            key: 'S',
+            text: 'Status ändern',
+            action: 'status',
+            available: hasSelection,
+            primary: false
           }
         ];
+        
+        // R-Taste für Offerte zu Rechnung (nur wenn angenommen)
+        if (hasSelection && selectedItem.status === 'angenommen') {
+          actions.push({
+            key: 'R',
+            text: '→ Rechnung',
+            action: 'toInvoice',
+            available: true,
+            primary: false
+          });
+        }
         
         if (showPdfExport && hasSelection) {
           actions.push({
@@ -240,6 +258,47 @@ const ContextMenu = ({
         });
         
         return actions;
+        
+      case 'invoices':
+        const invoiceActions = [
+          {
+            key: 'N',
+            text: 'Neue Rechnung',
+            action: 'new',
+            available: true,
+            primary: true
+          },
+          {
+            key: 'E',
+            text: 'Bearbeiten',
+            action: 'edit',
+            available: hasSelection,
+            primary: false
+          },
+          {
+            key: 'P',
+            text: 'PDF Export',
+            action: 'pdf',
+            available: hasSelection,
+            primary: true
+          },
+          {
+            key: 'S',
+            text: 'Status ändern',
+            action: 'status',
+            available: hasSelection,
+            primary: false
+          },
+          {
+            key: 'D',
+            text: 'Löschen',
+            action: 'delete',
+            available: hasSelection,
+            danger: true
+          }
+        ];
+        
+        return invoiceActions;
         
       default:
         return [];
@@ -267,7 +326,6 @@ const ContextMenu = ({
             <KeyBadge>{action.key}</KeyBadge>
             <ActionText>{action.text}</ActionText>
           </ContextAction>
-          {index < actions.length - 1 && <Separator />}
         </React.Fragment>
       ))}
     </ContextMenuContainer>

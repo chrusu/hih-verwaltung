@@ -196,6 +196,33 @@ const DataTable = ({
       );
     }
     
+    if (type === 'invoices') {
+      return (
+        <DesktopLayout>
+          <div style={{ flex: 2, fontWeight: 'bold', color: theme.colors.accentCyan, marginRight: theme.spacing.sm }}>
+            {item.nummer}
+          </div>
+          <div style={{ flex: 3, fontWeight: 'bold', color: theme.colors.accentBlue, marginRight: theme.spacing.sm }}>
+            {item.titel}
+          </div>
+          <div style={{ flex: 2, marginRight: theme.spacing.sm }}>
+            {item.kundeName || 'Unbekannt'}
+          </div>
+          <div style={{ flex: 1, fontWeight: 'bold', color: theme.colors.accentGreen, marginRight: theme.spacing.sm, textAlign: 'right' }}>
+            CHF {item.gesamtBrutto?.toFixed(2) || '0.00'}
+          </div>
+          <div style={{ flex: 1, marginRight: theme.spacing.sm, textAlign: 'center' }}>
+            <StatusBadge className={`status-${item.status}`}>
+              {item.status}
+            </StatusBadge>
+          </div>
+          <div style={{ flex: 1 }}>
+            {item.faelligkeitsdatum ? new Date(item.faelligkeitsdatum).toLocaleDateString('de-CH') : ''}
+          </div>
+        </DesktopLayout>
+      );
+    }
+    
     // Default rendering
     return (
       <DesktopLayout>
@@ -239,6 +266,31 @@ const DataTable = ({
           <MobileLine style={{ display: 'flex', justifyContent: 'space-between', color: theme.colors.textSecondary, fontSize: theme.fontSizes.sm }}>
             <span>{item.kundeName || 'Unbekannt'}</span>
             <span>{item.datum ? new Date(item.datum).toLocaleDateString('de-CH') : ''}</span>
+          </MobileLine>
+        </MobileLayout>
+      );
+    }
+    
+    if (type === 'invoices') {
+      return (
+        <MobileLayout>
+          <MobileLine style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 'bold', color: theme.colors.accentCyan, fontSize: theme.fontSizes.sm, marginRight: theme.spacing.xs }}>
+              {item.nummer}
+            </span>
+            <StatusBadge className={`status-${item.status}`} style={{ fontSize: theme.fontSizes.sm, whiteSpace: 'nowrap' }}>
+              {item.status}
+            </StatusBadge>
+          </MobileLine>
+          <MobileLine style={{ fontWeight: 'bold', color: theme.colors.accentBlue, fontSize: theme.fontSizes.base }}>
+            {item.titel}
+          </MobileLine>
+          <MobileLine style={{ fontWeight: 'bold', color: theme.colors.accentGreen, fontSize: theme.fontSizes.md, textAlign: 'center', margin: '1px 0' }}>
+            CHF {item.gesamtBrutto?.toFixed(2) || '0.00'}
+          </MobileLine>
+          <MobileLine style={{ display: 'flex', justifyContent: 'space-between', color: theme.colors.textSecondary, fontSize: theme.fontSizes.sm }}>
+            <span>{item.kundeName || 'Unbekannt'}</span>
+            <span>Fällig: {item.faelligkeitsdatum ? new Date(item.faelligkeitsdatum).toLocaleDateString('de-CH') : ''}</span>
           </MobileLine>
         </MobileLayout>
       );
@@ -336,6 +388,63 @@ const DataTable = ({
       );
     }
     
+    if (type === 'invoices') {
+      return (
+        <>
+          <TableCell>
+            {/* Desktop: nur Nummer */}
+            <DesktopLayout>
+              <div style={{ fontWeight: 'bold', color: theme.colors.accentCyan }}>
+                {item.nummer}
+              </div>
+            </DesktopLayout>
+            {/* Mobile: Alles */}
+            <MobileLayout>
+              <MobileLine style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 'bold', color: theme.colors.accentCyan, fontSize: theme.fontSizes.sm, marginRight: theme.spacing.xs }}>
+                  {item.nummer}
+                </span>
+                <StatusBadge className={`status-${item.status}`} style={{ fontSize: theme.fontSizes.sm, whiteSpace: 'nowrap' }}>
+                  {item.status}
+                </StatusBadge>
+              </MobileLine>
+              <MobileLine style={{ fontWeight: 'bold', color: theme.colors.accentBlue, fontSize: theme.fontSizes.base }}>
+                {item.titel}
+              </MobileLine>
+              <MobileLine style={{ fontWeight: 'bold', color: theme.colors.accentGreen, fontSize: theme.fontSizes.md, textAlign: 'center', margin: '1px 0' }}>
+                CHF {item.gesamtBrutto?.toFixed(2) || '0.00'}
+              </MobileLine>
+              <MobileLine style={{ display: 'flex', justifyContent: 'space-between', color: theme.colors.textSecondary, fontSize: theme.fontSizes.sm }}>
+                <span>{item.kundeName || 'Unbekannt'}</span>
+                <span>Fällig: {item.faelligkeitsdatum ? new Date(item.faelligkeitsdatum).toLocaleDateString('de-CH') : ''}</span>
+              </MobileLine>
+            </MobileLayout>
+          </TableCell>
+          <TableCell>
+            <span style={{ fontWeight: 'bold', color: theme.colors.accentBlue }}>
+              {item.titel}
+            </span>
+          </TableCell>
+          <TableCell>
+            {item.kundeName || 'Unbekannt'}
+          </TableCell>
+          <TableCell style={{ textAlign: 'right' }}>
+            <span style={{ fontWeight: 'bold', color: theme.colors.accentGreen }}>
+              CHF {item.gesamtBrutto?.toFixed(2) || '0.00'}
+            </span>
+          </TableCell>
+          <TableCell style={{ textAlign: 'center' }}>
+            <StatusBadge className={`status-${item.status}`}>
+              {item.status}
+            </StatusBadge>
+          </TableCell>
+          <TableCell>
+            {item.faelligkeitsdatum ? new Date(item.faelligkeitsdatum).toLocaleDateString('de-CH') : ''}
+          </TableCell>
+        </>
+      );
+    }
+    
     // Default rendering for custom columns
     return columns.map((col, colIndex) => (
       <TableCell key={colIndex}>
@@ -350,6 +459,9 @@ const DataTable = ({
     }
     if (type === 'offers') {
       return ['Titel', 'Kunde', 'Gesamtbetrag', 'Status', 'Datum'];
+    }
+    if (type === 'invoices') {
+      return ['Nummer', 'Titel', 'Kunde', 'Gesamtbetrag', 'Status', 'Fällig am'];
     }
     return columns.map(col => col.label);
   };
