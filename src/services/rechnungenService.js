@@ -507,7 +507,11 @@ export class RechnungenService {
 
     // Alle Positionen zurückschreiben
     const positionenPath = path.join(this.basePath, 'rechnungen', rechnung.verzeichnis, 'positionen.csv');
-    await this.fileManager.writeCsvFile(positionenPath, positionen.map(p => p.toCsvRow()));
+    const positionHeaders = [
+      'id', 'rechnungId', 'position', 'beschreibung', 'menge', 
+      'einheit', 'einzelpreis', 'rabatt', 'gesamtpreis', 'kategorie'
+    ];
+    await this.fileManager.writeCsvFile(positionenPath, positionen.map(p => p.toCsvRow()), positionHeaders);
     
     return positionen[positionIndex];
   }
@@ -534,7 +538,11 @@ export class RechnungenService {
 
     // Alle Positionen zurückschreiben
     const positionenPath = path.join(this.basePath, 'rechnungen', rechnung.verzeichnis, 'positionen.csv');
-    await this.fileManager.writeCsvFile(positionenPath, positionen.map(p => p.toCsvRow()));
+    const positionHeaders = [
+      'id', 'rechnungId', 'position', 'beschreibung', 'menge', 
+      'einheit', 'einzelpreis', 'rabatt', 'gesamtpreis', 'kategorie'
+    ];
+    await this.fileManager.writeCsvFile(positionenPath, positionen.map(p => p.toCsvRow()), positionHeaders);
     
     return true;
   }
