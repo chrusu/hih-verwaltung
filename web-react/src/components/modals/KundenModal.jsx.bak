@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import * as FormComponents from '../common/FormComponents';
-import { useFormValidation } from '../../hooks/useFormValidation';
-import { validateKunde } from '../../utils/validationSchemas';
 
 const {
   Form,
@@ -26,10 +24,27 @@ const KundenModal = ({
   onSave,
   loading = false 
 }) => {
-  // Initial Values
-  const getInitialValues = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    telefon: '',
+    typ: 'privat',
+    adresse: {
+      strasse: '',
+      plz: '',
+      ort: '',
+      land: 'Schweiz'
+    },
+    notizen: ''
+  });
+  
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
+  // Initialize form data when kunde changes
+  useEffect(() => {
     if (kunde) {
-      return {
+      setFormData({
         name: kunde.name || '',
         email: kunde.email || '',
         telefon: kunde.telefon || '',
@@ -41,49 +56,100 @@ const KundenModal = ({
           land: kunde.adresse?.land || 'Schweiz'
         },
         notizen: kunde.notizen || ''
-      };
+      });
+    } else {
+      // Reset for new kunde
+      setFormData({
+        name: '',
+        email: '',
+        telefon: '',
+        typ: 'privat',
+        adresse: {
+          strasse: '',
+          plz: '',
+          ort: '',
+          land: 'Schweiz'
+        },
+        notizen: ''
+      });
     }
-    
-    return {
-      name: '',
-      email: '',
-      telefon: '',
-      typ: 'privat',
-      adresse: {
-        strasse: '',
-        plz: '',
-        ort: '',
-        land: 'Schweiz'
-      },
-      notizen: ''
-    };
-  };
-
-  // Form Validation Hook
-  const {
-    formData,
-    errors,
-    touched,
-    handleChange,
-    handleBlur,
-    handleSubmit,
-    resetForm,
-    setFormData
-  } = useFormValidation(getInitialValues(), validateKunde);
-
-  // Reset form when modal opens/closes or kunde changes
-  useEffect(() => {
-    if (isOpen) {
-      setFormData(getInitialValues());
-    }
+    setErrors({});
+    setTouched({});
   }, [kunde, isOpen]);
 
-  const onSubmit = () => {
-    onSave(formData);
+  const handleInputChange = (field, value) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: null
+      }));
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name ist erforderlich';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'E-Mail ist erforderlich';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Ungültige E-Mail-Adresse';
+    }
+    
+    if (!formData.telefon.trim()) {
+      newErrors.telefon = 'Telefon ist erforderlich';
+    }
+    
+    if (!formData.adresse.plz.trim()) {
+      newErrors['adresse.plz'] = 'PLZ ist erforderlich';
+    }
+    
+    if (!formData.adresse.ort.trim()) {
+      newErrors['adresse.ort'] = 'Ort ist erforderlich';
+    }
+    
+    return newErrors;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const formErrors = validateForm();
+    setErrors(formErrors);
+    
+    if (Object.keys(formErrors).length === 0) {
+      onSave(formData);
+    }
   };
 
   const handleCancel = () => {
-    resetForm();
     onClose();
   };
 
@@ -93,11 +159,11 @@ const KundenModal = ({
   return (
     <BaseModal
       isOpen={isOpen}
-      onClose={handleCancel}
+      onClose={onClose}
       title={title}
       closeOnOverlay={!loading}
     >
-      <Form onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit); }}>
+      <Form onSubmit={handleSubmit}>
         <FormSection>
           <FormSectionTitle>Grunddaten</FormSectionTitle>
           
@@ -107,7 +173,7 @@ const KundenModal = ({
               <Input
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
+                onChange={(e) => handleInputChange('name', e.target.value)}
                 onBlur={() => handleBlur('name')}
                 disabled={loading}
                 placeholder="Vollständiger Name"
@@ -121,7 +187,7 @@ const KundenModal = ({
               <Label>Typ</Label>
               <Select
                 value={formData.typ}
-                onChange={(e) => handleChange('typ', e.target.value)}
+                onChange={(e) => handleInputChange('typ', e.target.value)}
                 disabled={loading}
               >
                 <option value="privat">Privat</option>
@@ -136,7 +202,7 @@ const KundenModal = ({
               <Input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 onBlur={() => handleBlur('email')}
                 disabled={loading}
                 placeholder="name@example.com"
@@ -151,7 +217,7 @@ const KundenModal = ({
               <Input
                 type="tel"
                 value={formData.telefon}
-                onChange={(e) => handleChange('telefon', e.target.value)}
+                onChange={(e) => handleInputChange('telefon', e.target.value)}
                 onBlur={() => handleBlur('telefon')}
                 disabled={loading}
                 placeholder="012 345 67 89"
@@ -171,7 +237,7 @@ const KundenModal = ({
             <Input
               type="text"
               value={formData.adresse.strasse}
-              onChange={(e) => handleChange('adresse.strasse', e.target.value)}
+              onChange={(e) => handleInputChange('adresse.strasse', e.target.value)}
               disabled={loading}
               placeholder="Musterstrasse 123"
             />
@@ -183,7 +249,7 @@ const KundenModal = ({
               <Input
                 type="text"
                 value={formData.adresse.plz}
-                onChange={(e) => handleChange('adresse.plz', e.target.value)}
+                onChange={(e) => handleInputChange('adresse.plz', e.target.value)}
                 onBlur={() => handleBlur('adresse.plz')}
                 disabled={loading}
                 placeholder="8000"
@@ -198,7 +264,7 @@ const KundenModal = ({
               <Input
                 type="text"
                 value={formData.adresse.ort}
-                onChange={(e) => handleChange('adresse.ort', e.target.value)}
+                onChange={(e) => handleInputChange('adresse.ort', e.target.value)}
                 onBlur={() => handleBlur('adresse.ort')}
                 disabled={loading}
                 placeholder="Zürich"
@@ -213,7 +279,7 @@ const KundenModal = ({
               <Input
                 type="text"
                 value={formData.adresse.land}
-                onChange={(e) => handleChange('adresse.land', e.target.value)}
+                onChange={(e) => handleInputChange('adresse.land', e.target.value)}
                 disabled={loading}
                 placeholder="Schweiz"
               />
@@ -228,7 +294,7 @@ const KundenModal = ({
             <Label>Notizen</Label>
             <TextArea
               value={formData.notizen}
-              onChange={(e) => handleChange('notizen', e.target.value)}
+              onChange={(e) => handleInputChange('notizen', e.target.value)}
               disabled={loading}
               placeholder="Zusätzliche Notizen zum Kunden..."
             />

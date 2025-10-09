@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import BaseModal from './BaseModal';
 import * as FormComponents from '../common/FormComponents';
-import firmaService from '../../services/firmaService';
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { useFirmaSettings } from '../../hooks/useFirmaSettings';
+import { formatDateForInput, getTodayFormatted, getDatePlusMonths } from '../../utils/dateFormatter';
+import { validateOfferte } from '../../utils/validationSchemas';
 
 const {
   Form,
@@ -27,139 +30,63 @@ const OffertenModal = ({
   onPositionenEdit,
   loading = false 
 }) => {
-  const [formData, setFormData] = useState({
-    titel: '',
-    kundeId: '',
-    datum: '',
-    gültigBis: '',
-    status: 'entwurf',
-    zahlungsbedingungen: '30 Tage netto',
-    mwstSatz: 0,
-    beschreibung: '',
-    notizen: ''
-  });
+  // Firma-Einstellungen laden
+  const { mwstSatz: defaultMwstSatz } = useFirmaSettings();
   
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
-  const [defaultMwstSatz, setDefaultMwstSatz] = useState(0);
-
-  // Lade Standard-MwSt-Satz von Firma
-  useEffect(() => {
-    const loadFirmaSettings = async () => {
-      try {
-        const firma = await firmaService.get();
-        setDefaultMwstSatz(firma?.mwstSatz || 0);
-      } catch (error) {
-        console.error('Fehler beim Laden der Firmeneinstellungen:', error);
-      }
-    };
-    loadFirmaSettings();
-  }, []);
-
-  // Initialize form data when offerte changes
-  useEffect(() => {
+  // Initial Values
+  const getInitialValues = () => {
     if (offerte) {
-      // Format dates for input fields
-      const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // YYYY-MM-DD format
-      };
-
-      setFormData({
+      return {
         titel: offerte.titel || '',
         kundeId: offerte.kundeId || '',
-        datum: formatDate(offerte.datum),
-        gültigBis: formatDate(offerte.gültigBis),
+        datum: formatDateForInput(offerte.datum),
+        gültigBis: formatDateForInput(offerte.gültigBis),
         status: offerte.status || 'entwurf',
         zahlungsbedingungen: offerte.zahlungsbedingungen || '30 Tage netto',
         mwstSatz: offerte.mwstSatz !== undefined ? offerte.mwstSatz : defaultMwstSatz,
         beschreibung: offerte.beschreibung || '',
         notizen: offerte.notizen || ''
-      });
-    } else {
-      // Reset for new offerte
-      const today = new Date();
-      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-      
-      setFormData({
-        titel: '',
-        kundeId: '',
-        datum: today.toISOString().split('T')[0],
-        gültigBis: nextMonth.toISOString().split('T')[0],
-        status: 'entwurf',
-        zahlungsbedingungen: '30 Tage netto',
-        mwstSatz: defaultMwstSatz,
-        beschreibung: '',
-        notizen: ''
-      });
+      };
     }
-    setErrors({});
-    setTouched({});
+    
+    return {
+      titel: '',
+      kundeId: '',
+      datum: getTodayFormatted(),
+      gültigBis: getDatePlusMonths(1),
+      status: 'entwurf',
+      zahlungsbedingungen: '30 Tage netto',
+      mwstSatz: defaultMwstSatz,
+      beschreibung: '',
+      notizen: ''
+    };
+  };
+
+  // Form Validation Hook
+  const {
+    formData,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm,
+    setFormData
+  } = useFormValidation(getInitialValues(), validateOfferte);
+
+  // Reset form when modal opens/closes or offerte changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(getInitialValues());
+    }
   }, [offerte, isOpen, defaultMwstSatz]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: null
-      }));
-    }
-  };
-
-  const handleBlur = (field) => {
-    setTouched(prev => ({
-      ...prev,
-      [field]: true
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.titel.trim()) {
-      newErrors.titel = 'Titel ist erforderlich';
-    }
-    
-    if (!formData.kundeId) {
-      newErrors.kundeId = 'Kunde muss ausgewählt werden';
-    }
-    
-    if (!formData.datum) {
-      newErrors.datum = 'Datum ist erforderlich';
-    }
-    
-    if (!formData.gültigBis) {
-      newErrors.gültigBis = 'Gültigkeitsdatum ist erforderlich';
-    } else if (new Date(formData.gültigBis) <= new Date(formData.datum)) {
-      newErrors.gültigBis = 'Gültigkeitsdatum muss nach dem Offertendatum liegen';
-    }
-    
-    if (formData.mwstSatz < 0 || formData.mwstSatz > 100) {
-      newErrors.mwstSatz = 'MwSt-Satz muss zwischen 0 und 100% liegen';
-    }
-    
-    return newErrors;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const formErrors = validateForm();
-    setErrors(formErrors);
-    
-    if (Object.keys(formErrors).length === 0) {
-      onSave(formData);
-    }
+  const onSubmit = () => {
+    onSave(formData);
   };
 
   const handleCancel = () => {
+    resetForm();
     onClose();
   };
 
@@ -169,11 +96,11 @@ const OffertenModal = ({
   return (
     <BaseModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleCancel}
       title={title}
       closeOnOverlay={!loading}
     >
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit); }}>
         <FormSection>
           <FormSectionTitle>Offerten-Grunddaten</FormSectionTitle>
           
@@ -182,7 +109,7 @@ const OffertenModal = ({
             <Input
               type="text"
               value={formData.titel}
-              onChange={(e) => handleInputChange('titel', e.target.value)}
+              onChange={(e) => handleChange('titel', e.target.value)}
               onBlur={() => handleBlur('titel')}
               disabled={loading}
               placeholder="WordPress Website mit Shop"
@@ -197,7 +124,7 @@ const OffertenModal = ({
               <Label required>Kunde</Label>
               <Select
                 value={formData.kundeId}
-                onChange={(e) => handleInputChange('kundeId', e.target.value)}
+                onChange={(e) => handleChange('kundeId', e.target.value)}
                 onBlur={() => handleBlur('kundeId')}
                 disabled={loading}
               >
@@ -212,13 +139,15 @@ const OffertenModal = ({
                 <ErrorMessage>{errors.kundeId}</ErrorMessage>
               )}
             </FormGroup>
-          </FormRow>          <FormRow>
+          </FormRow>
+
+          <FormRow>
             <FormGroup>
               <Label required>Offertendatum</Label>
               <Input
                 type="date"
                 value={formData.datum}
-                onChange={(e) => handleInputChange('datum', e.target.value)}
+                onChange={(e) => handleChange('datum', e.target.value)}
                 onBlur={() => handleBlur('datum')}
                 disabled={loading}
               />
@@ -232,7 +161,7 @@ const OffertenModal = ({
               <Input
                 type="date"
                 value={formData.gültigBis}
-                onChange={(e) => handleInputChange('gültigBis', e.target.value)}
+                onChange={(e) => handleChange('gültigBis', e.target.value)}
                 onBlur={() => handleBlur('gültigBis')}
                 disabled={loading}
               />
@@ -245,7 +174,7 @@ const OffertenModal = ({
               <Label>Status</Label>
               <Select
                 value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
+                onChange={(e) => handleChange('status', e.target.value)}
                 disabled={loading}
               >
                 <option value="entwurf">Entwurf</option>
@@ -266,7 +195,7 @@ const OffertenModal = ({
               <Input
                 type="text"
                 value={formData.zahlungsbedingungen}
-                onChange={(e) => handleInputChange('zahlungsbedingungen', e.target.value)}
+                onChange={(e) => handleChange('zahlungsbedingungen', e.target.value)}
                 disabled={loading}
                 placeholder="30 Tage netto"
               />
@@ -280,7 +209,7 @@ const OffertenModal = ({
                 min="0"
                 max="100"
                 value={formData.mwstSatz}
-                onChange={(e) => handleInputChange('mwstSatz', parseFloat(e.target.value) || 0)}
+                onChange={(e) => handleChange('mwstSatz', parseFloat(e.target.value) || 0)}
                 onBlur={() => handleBlur('mwstSatz')}
                 disabled={loading}
               />
@@ -298,7 +227,7 @@ const OffertenModal = ({
             <Label>Beschreibung</Label>
             <TextArea
               value={formData.beschreibung}
-              onChange={(e) => handleInputChange('beschreibung', e.target.value)}
+              onChange={(e) => handleChange('beschreibung', e.target.value)}
               disabled={loading}
               placeholder="Kurze Beschreibung der Leistungen..."
             />
@@ -308,7 +237,7 @@ const OffertenModal = ({
             <Label>Interne Notizen</Label>
             <TextArea
               value={formData.notizen}
-              onChange={(e) => handleInputChange('notizen', e.target.value)}
+              onChange={(e) => handleChange('notizen', e.target.value)}
               disabled={loading}
               placeholder="Interne Notizen (nicht sichtbar für Kunde)..."
             />
