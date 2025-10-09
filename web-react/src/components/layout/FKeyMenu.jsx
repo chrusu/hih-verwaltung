@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { theme } from '../../themes/terminal';
-import { FKeyButton, FKeyLabel as FKeyLabelStyled, FKeyText } from '../common/Buttons';
+import { FKeyButton, FKeyLabel as FKeyLabelStyled, FKeyText, FKeyIcon } from '../common/Buttons';
+import TerminalIcon from '../common/TerminalIcon';
 
 const FKeyContainer = styled.div`
   background: ${theme.colors.bgSecondary};
@@ -56,12 +57,12 @@ const StatusTime = styled.div`
 `;
 
 const fKeyMap = [
-  { key: 'F1', label: 'Hilfe', action: 'help' },
-  { key: 'F2', label: 'Kunden', action: 'customers' },
-  { key: 'F3', label: 'Offerten', action: 'offers' },
-  { key: 'F4', label: 'Rechnung', action: 'invoices' },
-  { key: 'F5', label: 'Aktualisieren', action: 'refresh' },
-  { key: 'F10', label: 'Hauptmenü', action: 'startup' },
+  { key: 'F2', label: 'Kunden', action: 'customers', icon: 'users' },
+  { key: 'F3', label: 'Offerten', action: 'offers', icon: 'document' },
+  { key: 'F4', label: 'Rechnung', action: 'invoices', icon: 'invoice' },
+  { key: 'F5', label: 'Aktualisieren', action: 'refresh', icon: 'refresh' },
+  { key: 'F9', label: 'Firma', action: 'firma', icon: 'building' },
+  { key: 'F10', label: 'Hauptmenü', action: 'startup', icon: 'home' },
 ];
 
 const FKeyMenu = ({ currentScreen, onFKeyPress, statusMessage }) => {
@@ -102,13 +103,16 @@ const FKeyMenu = ({ currentScreen, onFKeyPress, statusMessage }) => {
   return (
     <>
       <FKeyContainer>
-        {fKeyMap.map(({ key, label, action }) => (
+        {fKeyMap.map(({ key, label, action, icon }) => (
           <FKeyButton
             key={key}
             className={currentScreen === action ? 'active' : ''}
             onClick={() => handleFKeyClick(action)}
           >
             <FKeyLabelStyled>{key}</FKeyLabelStyled>
+            <FKeyIcon>
+              <TerminalIcon type={icon} />
+            </FKeyIcon>
             <FKeyText>{label}</FKeyText>
           </FKeyButton>
         ))}

@@ -8,12 +8,14 @@ import TitleBar from './components/layout/TitleBar';
 import ContentArea from './components/layout/ContentArea';
 import FKeyMenu from './components/layout/FKeyMenu';
 import ContextMenu from './components/layout/ContextMenu';
+import FloatingActionButton from './components/common/FloatingActionButton';
 
 // Screen Components
 import StartupScreen from './components/screens/StartupScreen';
 import KundenScreen from './components/screens/KundenScreen';
 import OffertenScreen from './components/screens/OffertenScreen';
 import RechnungenScreen from './components/screens/RechnungenScreen';
+import FirmaScreen from './components/screens/FirmaScreen';
 
 // Modal Components
 import KundenModal from './components/modals/KundenModal';
@@ -112,49 +114,33 @@ const GlobalStyle = createGlobalStyle`
 
   /* Mobile Touch Optimizations & Desktop Refinements */
   @media (max-width: 768px) {
-    /* Enhanced button and input styling for mobile */
-    button, input[type="button"], input[type="submit"], input[type="reset"] {
-      min-height: 52px !important;
-      padding: 16px 20px !important;
-      font-size: 18px !important;
-      border-radius: 8px !important;
-      min-width: 120px !important;
-      margin: 8px 4px !important;
-      cursor: pointer !important;
-      transition: all 0.2s ease !important;
-      box-sizing: border-box !important;
+    /* Input field enhancements only - Buttons werden durch styled-components gesteuert */
+    input:not([type="button"]):not([type="submit"]):not([type="reset"]), 
+    textarea, 
+    select {
+      min-height: 40px;
+      padding: 10px 14px;
+      font-size: 15px;
+      margin: 6px 0;
+      border: 2px solid #333;
+      background: #1a1a1a;
+      color: #ffffff;
+      border-radius: 6px;
+      box-sizing: border-box;
     }
     
-    button:hover, button:focus,
-    input[type="button"]:hover, input[type="button"]:focus,
-    input[type="submit"]:hover, input[type="submit"]:focus {
-      transform: translateY(-1px) !important;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
-    }
-    
-    /* Input field enhancements */
-    input, textarea, select {
-      min-height: 52px !important;
-      padding: 16px 20px !important;
-      font-size: 18px !important;
-      margin: 8px 0 !important;
-      border: 2px solid #333 !important;
-      background: #1a1a1a !important;
-      color: #ffffff !important;
-      border-radius: 8px !important;
-      box-sizing: border-box !important;
-    }
-    
-    input:focus, textarea:focus, select:focus {
-      border-color: #4a9eff !important;
-      outline: none !important;
-      box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.3) !important;
+    input:not([type="button"]):not([type="submit"]):not([type="reset"]):focus, 
+    textarea:focus, 
+    select:focus {
+      border-color: #4a9eff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
     }
     
     /* Table cell padding for mobile */
     td, th {
-      padding: 16px 12px !important;
-      min-height: 52px !important;
+      padding: 10px 8px;
+      min-height: auto;
     }
     
     /* Enhanced readability */
@@ -241,6 +227,17 @@ function App() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [statusMessage, setStatusMessage] = useState('System bereit - F-Tasten für Navigation');
 
+  // Mobile Detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Data Hooks
   const { kunden, loading: kundenLoading, error: kundenError, refreshKunden } = useKunden();
   const { offerten, loading: offertenLoading, error: offertenError, refreshOfferten } = useOfferten();
@@ -302,6 +299,11 @@ function App() {
       case 'invoices':
         setCurrentScreen('invoices');
         setStatusMessage(`Rechnungen (${Array.isArray(rechnungen) ? rechnungen.length : 0}) - ↑↓ Navigation, Enter=Bearbeiten, F4=Neu, P=PDF`);
+        break;
+        
+      case 'firma':
+        setCurrentScreen('firma');
+        setStatusMessage('Firmenprofil - F9 zum Bearbeiten');
         break;
         
       case 'refresh':
@@ -625,6 +627,20 @@ function App() {
   // Row Selection Handler
   const handleRowClick = (index) => {
     setSelectedIndex(index);
+    
+    // Mobile: Einfachklick öffnet direkt (statt Doppelklick)
+    if (isMobile) {
+      // Timeout für saubere Auswahl-Animation
+      setTimeout(() => {
+        if (currentScreen === 'customers' && kunden[index]) {
+          handleKundeDoubleClick(kunden[index], index);
+        } else if (currentScreen === 'offers' && filteredOfferten[index]) {
+          handleOfferteDoubleClick(filteredOfferten[index], index);
+        } else if (currentScreen === 'invoices' && filteredRechnungen[index]) {
+          handleRechnungDoubleClick(filteredRechnungen[index], index);
+        }
+      }, 100);
+    }
   };
 
   // Modal Handlers
@@ -867,6 +883,9 @@ function App() {
           />
         );
         
+      case 'firma':
+        return <FirmaScreen />;
+        
       default:
         return <StartupScreen />;
     }
@@ -894,6 +913,14 @@ function App() {
             }
             onAction={handleContextAction}
             showPdfExport={currentScreen === 'offers' || currentScreen === 'invoices'}
+          />
+        )}
+        
+        {/* Floating Action Button (Mobile only) - Neu erstellen */}
+        {(currentScreen === 'customers' || currentScreen === 'offers' || currentScreen === 'invoices') && (
+          <FloatingActionButton 
+            onClick={() => handleContextAction('new')}
+            icon="+"
           />
         )}
         

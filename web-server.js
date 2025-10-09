@@ -9,6 +9,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
+import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -37,6 +38,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Multer für File-Uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
 // Static files für Web Interface
 // Prüfen ob React-Build vorhanden ist, ansonsten fallback auf alte Web-Version
 const reactBuildPath = path.join(__dirname, 'web-build');
@@ -64,20 +73,94 @@ app.use((req, res, next) => {
 app.get('/api/firma', async (req, res) => {
     try {
         const firma = await firmaService.getFirma();
-        res.json({ success: true, data: firma });
+        
+        // Logo & Unterschrift URLs hinzufügen
+        const logoUrl = await firmaService.getLogoUrl();
+        const signatureUrl = await firmaService.getSignatureUrl();
+        
+        res.json({ 
+            success: true, 
+            data: {
+                ...firma,
+                logoUrl,
+                signatureUrl
+            }
+        });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Firmendaten:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.put('/api/firma', async (req, res) => {
+app.put('/api/firma', upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+]), async (req, res) => {
     try {
-        const firma = await firmaService.updateFirma(req.body);
+        // Firmendaten aus Body extrahieren
+        const firmaData = { ...req.body };
+        
+        // Logo-Upload verarbeiten
+        if (req.files && req.files.logo && req.files.logo[0]) {
+            const logoFile = req.files.logo[0];
+            await firmaService.uploadLogo(logoFile.buffer, logoFile.originalname);
+            console.log(`📁 Logo hochgeladen: ${logoFile.originalname}`);
+        }
+        
+        // Unterschrift-Upload verarbeiten
+        if (req.files && req.files.signature && req.files.signature[0]) {
+            const signatureFile = req.files.signature[0];
+            await firmaService.uploadSignature(signatureFile.buffer, signatureFile.originalname);
+            console.log(`✍️ Unterschrift hochgeladen: ${signatureFile.originalname}`);
+        }
+        
+        // Firmendaten aktualisieren
+        const firma = await firmaService.updateFirma(firmaData);
+        
+        // Logo & Unterschrift URLs hinzufügen
+        const logoUrl = await firmaService.getLogoUrl();
+        const signatureUrl = await firmaService.getSignatureUrl();
+        
         console.log(`✅ Firmendaten aktualisiert`);
-        res.json({ success: true, data: firma });
+        res.json({ 
+            success: true, 
+            data: {
+                ...firma,
+                logoUrl,
+                signatureUrl
+            }
+        });
     } catch (error) {
         console.error('❌ Fehler beim Aktualisieren der Firmendaten:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Firma Logo & Unterschrift abrufen
+app.get('/api/firma/logo/:filename', async (req, res) => {
+    try {
+        const logoPath = await firmaService.getLogoPath();
+        if (logoPath) {
+            res.sendFile(logoPath);
+        } else {
+            res.status(404).json({ success: false, error: 'Logo nicht gefunden' });
+        }
+    } catch (error) {
+        console.error('❌ Fehler beim Laden des Logos:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/firma/signature/:filename', async (req, res) => {
+    try {
+        const signaturePath = await firmaService.getSignaturePath();
+        if (signaturePath) {
+            res.sendFile(signaturePath);
+        } else {
+            res.status(404).json({ success: false, error: 'Unterschrift nicht gefunden' });
+        }
+    } catch (error) {
+        console.error('❌ Fehler beim Laden der Unterschrift:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

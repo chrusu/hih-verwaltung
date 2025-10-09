@@ -1,5 +1,6 @@
 id,rechnungId,position,beschreibung,menge,einheit,einzelpreis,rabatt,gesamtpreis,kategorie
-RPOS-CSQB3Qlj,REC-IjSqdVYK,2,Beratung und Konzept,5,Std,140,0,700,Beratung
-RPOS-waYbU-oc,REC-IjSqdVYK,3,WordPress-Entwicklung inkl. Theme-Anpassung,25,Std,110,0,2750,Entwicklung
-RPOS-C5Ti6f4s,REC-IjSqdVYK,4,WooCommerce Shop-Setup und Konfiguration,15,Std,120,10,1620,E-Commerce
-RPOS-rPwyHzAB,REC-IjSqdVYK,5,Entwicklung,3,Std,140,0,420,Entwicklung
+RPOS-I-7DaTQt,REC-puYCjH6A,1,,1,Stk,0,0,0,
+RPOS-AasLJOct,REC-puYCjH6A,2,Beratung und Konzept,5,Std,140,0,700,Beratung
+RPOS-WERJo-RP,REC-puYCjH6A,3,WordPress-Entwicklung inkl. Theme-Anpassung,25,Std,110,0,2750,Entwicklung
+RPOS--7wbdPst,REC-puYCjH6A,4,WooCommerce Shop-Setup und Konfiguration,15,Std,120,10,1620,E-Commerce
+RPOS-eIq42xDf,REC-puYCjH6A,5,hallo,20,Std,150,0,3000,Entwicklung

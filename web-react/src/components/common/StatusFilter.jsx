@@ -10,8 +10,8 @@ const FilterContainer = styled.div`
   border-bottom: 1px solid ${props => props.theme.colors.borderColor};
   
   @media (max-width: 768px) {
-    gap: 8px;
-    padding: 12px;
+    gap: 6px;
+    padding: 8px;
   }
 `;
 
@@ -37,9 +37,10 @@ const FilterButton = styled.button`
   font-weight: ${props => props.$active ? 'bold' : 'normal'};
   
   @media (max-width: 768px) {
-    padding: 12px 16px;
-    min-height: 48px;
-    font-size: 16px;
+    padding: 8px 12px;
+    min-height: auto;
+    font-size: 13px;
+    gap: 4px;
   }
   
   &:hover {

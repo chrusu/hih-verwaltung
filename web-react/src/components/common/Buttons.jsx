@@ -74,10 +74,10 @@ export const ActionButton = styled.button`
   
   /* Mobile touch targets */
   @media (max-width: 768px) {
-    padding: 18px 24px;
-    font-size: 18px;
-    min-height: 52px;
-    min-width: 120px;
+    padding: 10px 16px;
+    font-size: 14px;
+    min-height: 36px;
+    min-width: 80px;
   }
 `;
 
@@ -92,8 +92,8 @@ export const SmallButton = styled(ActionButton)`
   margin: 0 2px;
   
   @media (max-width: 768px) {
-    padding: ${theme.spacing.sm} ${theme.spacing.md};
-    font-size: ${theme.fontSizes.sm};
+    padding: 6px 10px;
+    font-size: 12px;
   }
 `;
 
@@ -106,7 +106,7 @@ export const FKeyButton = styled.button`
   align-items: center;
   justify-content: flex-start;
   gap: ${theme.spacing.sm};
-  padding: ${theme.spacing.md} 2em ${theme.spacing.md} ${theme.spacing.md};
+  padding: 0.2em 0.7em;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: ${theme.borderRadius.base};
@@ -136,11 +136,15 @@ export const FKeyButton = styled.button`
   
   /* Mobile touch targets */
   @media (max-width: 768px) {
-    padding: 18px 24px;
-    font-size: 18px;
-    min-height: 52px;
-    min-width: 120px;
-    margin: 4px 2px;
+    padding: 8px;
+    font-size: 13px;
+    min-height: auto;
+    min-width: auto;
+    width: 40px;
+    height: 40px;
+    margin: 2px;
+    justify-content: center;
+    border-width: 1px;
   }
   
   &.active {
@@ -175,13 +179,9 @@ export const FKeyLabel = styled.span`
   text-align: center;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
   
-  /* Mobile enhancements */
+  /* Mobile: Label komplett ausblenden */
   @media (max-width: 768px) {
-    padding: 6px 12px;
-    font-size: 14px;
-    font-weight: ${theme.fontWeights.bold};
-    border-radius: 6px;
-    min-width: 36px;
+    display: none;
   }
   
   .active & {
@@ -198,8 +198,27 @@ export const FKeyText = styled.span`
   font-weight: ${theme.fontWeights.medium};
   letter-spacing: ${theme.letterSpacing.normal};
   
+  /* Mobile: Text ausblenden, nur Icons */
+  @media (max-width: 768px) {
+    display: none;
+  }
+  
   .active & {
     font-weight: ${theme.fontWeights.bold};
+  }
+`;
+
+/**
+ * F-Key Icon Wrapper (Mobile only)
+ */
+export const FKeyIcon = styled.span`
+  display: none;
+  
+  /* Mobile: Nur Icon anzeigen */
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 `;
 

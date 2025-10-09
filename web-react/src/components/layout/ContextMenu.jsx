@@ -16,12 +16,9 @@ const ContextMenuContainer = styled.div`
   align-items: center;
   justify-content: center;
   
+  /* Mobile: SubNavigation komplett ausblenden */
   @media (max-width: 768px) {
-    gap: 8px;
-    padding: 12px 8px;
-    font-size: 16px;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: none;
   }
 `;
 
