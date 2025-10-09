@@ -1,0 +1,71 @@
+🧹 HIH-Verwaltung Aufräum-Bericht
+================================
+
+✅ Gelöscht:
+
+Alte Web-Implementierung:
+- web/ Verzeichnis (app.js, index.html, styles*.css)
+
+DOS-TUI & Interactive CLI:
+- dos-tui.js
+- launcher.js
+- test-dos-services.js
+- src/interactive-cli.js
+
+Dokumentationen:
+- ABBRECHEN-FUNKTIONEN.md
+- CRUD-FEATURES.md
+- DOS-DEMO-GUIDE.md
+- DOS-TUI-FEATURES.md
+- DOCKER-HOSTING.md
+- EINFACHES-SETUP.md
+- ERSTE-SCHRITTE.md
+- EUROPA-HOSTING.md
+- INTERACTIVE-CLI.md
+- cloudscale-minimal.md
+
+Test-Dateien:
+- test-dos-services.js
+- test-offerte-latex.js
+- test-rechnung-latex.js
+- generate-fresh-pdfs.js
+
+Build/Deploy Scripts:
+- deploy.sh
+- setup-europa.sh
+
+Backup-Archive:
+- hih-verwaltung-20251005.tar.gz
+
+Config-Dateien:
+- nginx.conf
+
+📦 Behalten (wichtig):
+
+Kernapplikation:
+✓ web-react/         - React Frontend (Port 5175 dev)
+✓ web-server.js      - Node.js API Backend (Port 3000)
+✓ hih.js            - Einfaches CLI (→ src/cli.js)
+✓ src/              - Services, Models, CLI
+✓ data/             - Kunden, Offerten, Rechnungen, PDFs
+
+Build & Deploy:
+✓ build-react.sh    - React Build-Script
+✓ Dockerfile        - Docker Container Setup
+✓ docker-compose.yml
+✓ vercel.json       - Vercel Deployment Config
+
+Dokumentation:
+✓ README.md         - Haupt-Dokumentation
+✓ PDF-EXPORT.md     - LaTeX/PDF Dokumentation
+
+Dependencies:
+✓ package.json
+✓ package-lock.json
+✓ node_modules/
+
+📝 Änderungen:
+
+- hih.js: Vereinfacht, lädt jetzt direkt src/cli.js
+- Projekt fokussiert auf: React-Web + Node-API + CLI
+
