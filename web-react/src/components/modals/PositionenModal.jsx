@@ -419,7 +419,7 @@ const PositionenModal = ({
   };
 
   const subtotal = positionen.reduce((sum, pos) => sum + pos.gesamtpreis, 0);
-  const mwstBetrag = subtotal * ((offerte?.mwstSatz || 7.7) / 100);
+  const mwstBetrag = subtotal * ((offerte?.mwstSatz !== undefined ? offerte.mwstSatz : 7.7) / 100);
   const gesamtBrutto = subtotal + mwstBetrag;
 
   if (!offerte) return null;
@@ -577,7 +577,7 @@ const PositionenModal = ({
             </TotalRow>
             <TotalRow>
               <PositionenTd colSpan="6" style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                MwSt ({offerte.mwstSatz || 7.7}%):
+                MwSt ({offerte.mwstSatz !== undefined ? offerte.mwstSatz : 7.7}%):
               </PositionenTd>
               <PositionenTd className="numeric" style={{ fontWeight: 'bold', color: theme.colors.accentYellow }}>
                 CHF {mwstBetrag.toFixed(2)}
@@ -747,7 +747,7 @@ const PositionenModal = ({
               <span>CHF {subtotal.toFixed(2)}</span>
             </TotalRow2>
             <TotalRow2>
-              <span>MwSt ({offerte.mwstSatz || 7.7}%):</span>
+              <span>MwSt ({offerte.mwstSatz !== undefined ? offerte.mwstSatz : 7.7}%):</span>
               <span>CHF {mwstBetrag.toFixed(2)}</span>
             </TotalRow2>
             <TotalRow2>

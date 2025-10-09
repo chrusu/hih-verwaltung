@@ -10,6 +10,7 @@ import QRCode from 'qrcode';
 import { FileManager } from '../fileManager.js';
 import { OffertenService } from './offertenService.js';
 import { KundenService } from './kundenService.js';
+import { FirmaService } from './firmaService.js';
 
 export class PdfExportService {
   constructor(basePath = './data') {
@@ -17,76 +18,30 @@ export class PdfExportService {
     this.fileManager = new FileManager(basePath);
     this.offertenService = new OffertenService(basePath);
     this.kundenService = new KundenService(basePath);
+    this.firmaService = new FirmaService(basePath);
     this.templateDir = path.join(basePath, 'eigene_firma', 'briefvorlage');
     this.outputDir = path.join(basePath, 'exports');
   }
 
   /**
-   * Lädt Firmendaten aus der Vorlage
+   * Lädt Firmendaten aus firma.md
    */
   async loadFirmenDaten() {
-    const firmenDatenPath = path.join(this.templateDir, 'hinderling_internet_handwerk.md');
-    const metaPath = path.join(this.templateDir, 'meta.md');
-    
-    const firmenDaten = await this.fileManager.readMarkdownFile(firmenDatenPath);
-    const metaDaten = await this.fileManager.readMarkdownFile(metaPath);
-    
-    if (!firmenDaten || !metaDaten) {
-      throw new Error('Firmendaten oder Meta-Informationen nicht gefunden');
-    }
-
-    // Parse Firmendaten aus Markdown
-    const content = firmenDaten.content;
-    const adresseMatch = content.match(/## Adresse\n(.*?)\n(.*?)\n/s);
-    const telefonMatch = content.match(/## Telefonnummer\n(.*?)\n/);
-    const emailMatch = content.match(/## Email\n(.*?)\n/);
-    const signaturMatch = content.match(/## Email-Signatur\n([\s\S]*?)(?=\n##|$)/);
-    
-    // Parse Meta-Daten
-    const metaContent = metaDaten.content;
-    const colorMatch = metaContent.match(/## Color\n(.*?)\n/);
-    const fontMatch = metaContent.match(/## Font\n(.*?)\n/);
-
-    // Parse E-Mail-Signatur dynamisch
-    let emailSignatur = {
-      name: 'Tobias Hinderling',
-      firma: 'Internet Handwerk',
-      slogan1: 'Bruchsch ä nöii Website?',
-      slogan2: 'pragmatisch, modern, unkompliziert',
-      website: 'https://www.hinderling-internet-handwerk.ch',
-      linkText: 'Di Internet-Handwärker "de Bieu"'
-    };
-    
-    if (signaturMatch) {
-      const sig = signaturMatch[1].trim();
-      const lines = sig.split('\n').filter(line => line.trim());
-      if (lines.length >= 4) {
-        emailSignatur.name = lines[0].trim();
-        emailSignatur.firma = lines[1].trim();
-        emailSignatur.slogan1 = lines[2].trim();
-        emailSignatur.slogan2 = lines[3].trim();
-        
-        // Parse Link aus letzter Zeile
-        const linkMatch = sig.match(/\[(.*?)\]\((.*?)\)/);
-        if (linkMatch) {
-          emailSignatur.linkText = linkMatch[1];
-          emailSignatur.website = linkMatch[2];
-        }
-      }
-    }
+    const firma = await this.firmaService.getFirma();
 
     return {
-      name: emailSignatur.firma,
-      inhaber: emailSignatur.name,
-      adresse: {
-        strasse: adresseMatch ? adresseMatch[1].trim() : 'Werkhofstrasse 11',
-        plzOrt: adresseMatch ? adresseMatch[2].trim() : '2503 Biel'
-      },
-      telefon: telefonMatch ? telefonMatch[1].trim() : "079/483'99'94",
-      email: emailMatch ? emailMatch[1].trim() : 'hallo@hinderling-internet-handwerk.ch',
-      brandColor: colorMatch ? colorMatch[1].trim().replace('#', '') : 'bd00ff',
-      font: fontMatch ? fontMatch[1].trim() : 'Lexend Exa',
-      emailSignatur: emailSignatur
+      name: firma.name,
+      inhaber: 'Tobias Hinderling', // Kann später auch in firma.md konfiguriert werden
+      strasse: firma.strasse,
+      plz: firma.plz,
+      ort: firma.ort,
+      telefon: firma.telefon,
+      email: firma.email,
+      website: firma.website,
+      uid: firma.uid,
+      iban: firma.iban,
+      color: firma['accent-color'] || '#bd00ff',
+      font: firma['main-font'] || 'Lexend Exa'
     };
   }
 
@@ -255,7 +210,7 @@ export class PdfExportService {
 \\setmainfont{${firmendaten.font}}
 
 % Colors
-\\definecolor{brand}{HTML}{${firmendaten.brandColor}}
+\\definecolor{brand}{HTML}{${firmendaten.color.replace("#", "")}}
 \\hypersetup{colorlinks=true,linkcolor=brand,urlcolor=brand,citecolor=brand}
 \\urlstyle{same}
 
@@ -267,8 +222,8 @@ export class PdfExportService {
 \\renewcommand{\\headrulewidth}{0pt}
 \\fancyhead[L]{\\includegraphics[height=2cm]{${logoPath}}}
 \\fancyhead[R]{\\begin{minipage}{7cm}\\raggedleft\\small
-${firmendaten.adresse.strasse}\\\\
-${firmendaten.adresse.plzOrt}\\\\
+${firmendaten.strasse}\\\\
+${firmendaten.plz} ${firmendaten.ort}\\\\
 \\href{tel:${firmendaten.telefon}}{\\textcolor{brand}{${firmendaten.telefon}}}\\\\
 \\href{mailto:${firmendaten.email}}{\\textcolor{brand}{${firmendaten.email}}}
 \\end{minipage}}
@@ -318,12 +273,12 @@ Wir freuen uns auf Ihre Rückmeldung und danken Ihnen für Ihr Vertrauen.
 \\begin{minipage}{10cm}
 % Unterschrift-Bild
 \\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
-% E-Mail-Signatur (dynamisch aus Firmendaten)
-\\textbf{${firmendaten.emailSignatur.name}}\\\\
-${firmendaten.emailSignatur.firma}\\\\[0.5em]
-${firmendaten.emailSignatur.slogan1}\\\\[0.3em]
-${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
-\\href{${firmendaten.emailSignatur.website}}{\\textcolor{brand}{${firmendaten.emailSignatur.linkText}}}
+% E-Mail-Signatur
+\\textbf{Tobias Hinderling}\\\\
+Internet Handwerk\\\\[0.5em]
+Bruchsch ä nöii Website?\\\\[0.3em]
+pragmatisch, modern, unkompliziert\\\\[0.5em]
+\\href{${firmendaten.website}}{\\textcolor{brand}{Di Internet-Handwärker "de Bieu"}}
 \\end{minipage}
 
 \\end{document}`;
@@ -367,12 +322,12 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
         }
       }
 
-      // LaTeX-Datei ebenfalls löschen (optional)
-      try {
-        await fs.unlink(texPath);
-      } catch (error) {
-        // Ignoriere Fehler
-      }
+      // LaTeX-Datei behalten für Debugging
+      // try {
+      //   await fs.unlink(texPath);
+      // } catch (error) {
+      //   // Ignoriere Fehler
+      // }
 
       const pdfPath = path.join(this.outputDir, pdfFilename);
       
@@ -421,10 +376,10 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
       iban.replace(/\s/g, ''),        // IBAN ohne Leerzeichen
       'K',                            // Creditor Address Type (K=structured, S=combined)
       firmendaten.name || '',         // Creditor Name
-      firmendaten.adresse?.strasse || '', // Creditor Street
+      firmendaten.strasse || '',      // Creditor Street
       '',                             // Creditor Building Number (optional)
-      firmendaten.adresse?.plz || '', // Creditor Postal Code
-      firmendaten.adresse?.ort || '', // Creditor Town
+      firmendaten.plz || '',          // Creditor Postal Code
+      firmendaten.ort || '',          // Creditor Town
       'CH',                           // Creditor Country
       '',                             // Ultimate Creditor Address Type (optional)
       '',                             // Ultimate Creditor Name
@@ -555,7 +510,7 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
 
     // Totalsummen
     const subtotal = positionen.reduce((sum, pos) => sum + (pos.gesamtpreis || 0), 0);
-    const mwstSatz = rechnungDetails.mwstSatz || 7.7;
+    const mwstSatz = rechnungDetails.mwstSatz !== undefined ? rechnungDetails.mwstSatz : 7.7;
     const mwstBetrag = subtotal * (mwstSatz / 100);
     const gesamtBrutto = subtotal + mwstBetrag;
 
@@ -609,7 +564,7 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
 \\setmainfont{${firmendaten.font}}
 
 % Colors
-\\definecolor{brand}{HTML}{${firmendaten.brandColor}}
+\\definecolor{brand}{HTML}{${firmendaten.color.replace("#", "")}}
 \\hypersetup{colorlinks=true,linkcolor=brand,urlcolor=brand,citecolor=brand}
 \\urlstyle{same}
 
@@ -621,8 +576,8 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
 \\renewcommand{\\headrulewidth}{0pt}
 \\fancyhead[L]{\\includegraphics[height=2cm]{${logoPath}}}
 \\fancyhead[R]{\\begin{minipage}{7cm}\\raggedleft\\small
-${firmendaten.adresse.strasse}\\\\
-${firmendaten.adresse.plzOrt}\\\\
+${firmendaten.strasse}\\\\
+${firmendaten.plz} ${firmendaten.ort}\\\\
 \\href{tel:${firmendaten.telefon}}{\\textcolor{brand}{${firmendaten.telefon}}}\\\\
 \\href{mailto:${firmendaten.email}}{\\textcolor{brand}{${firmendaten.email}}}
 \\end{minipage}}
@@ -696,11 +651,11 @@ Vielen Dank für Ihr Vertrauen und die angenehme Zusammenarbeit.
 \\noindent
 \\begin{minipage}{10cm}
 \\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
-\\textbf{${firmendaten.emailSignatur.name}}\\\\
-${firmendaten.emailSignatur.firma}\\\\[0.5em]
-${firmendaten.emailSignatur.slogan1}\\\\[0.3em]
-${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
-\\href{${firmendaten.emailSignatur.website}}{\\textcolor{brand}{${firmendaten.emailSignatur.linkText}}}
+\\textbf{Tobias Hinderling}\\\\
+Internet Handwerk\\\\[0.5em]
+Bruchsch ä nöii Website?\\\\[0.3em]
+pragmatisch, modern, unkompliziert\\\\[0.5em]
+\\href{${firmendaten.website}}{\\textcolor{brand}{Di Internet-Handwärker "de Bieu"}}
 \\end{minipage}
 
 \\end{document}`;
@@ -725,14 +680,12 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
       // XeLaTeX ausführen (2x für Referenzen)
       console.log(`Generiere PDF für Rechnung ${rechnungNummer}...`);
       try {
-        execSync(`xelatex -interaction=nonstopmode -output-directory="${this.outputDir}" "${texPath}"`, {
-          cwd: this.outputDir,
+        execSync(`cd "${this.outputDir}" && xelatex "${texFilename}"`, {
           stdio: 'pipe'
         });
         
         // Zweiter Durchlauf für korrekte Seitenzahlen
-        execSync(`xelatex -interaction=nonstopmode -output-directory="${this.outputDir}" "${texPath}"`, {
-          cwd: this.outputDir,
+        execSync(`cd "${this.outputDir}" && xelatex "${texFilename}"`, {
           stdio: 'pipe'
         });
       } catch (execError) {
@@ -745,8 +698,8 @@ ${firmendaten.emailSignatur.slogan2}\\\\[0.5em]
       const pdfFilename = `rechnung_${rechnungNummer}.pdf`;
       const pdfPath = path.join(this.outputDir, pdfFilename);
 
-      // Aufräumen: Temporäre LaTeX-Dateien löschen
-      const extensions = ['.tex', '.aux', '.log', '.out'];
+      // Aufräumen: Temporäre LaTeX-Dateien löschen (außer .tex für Debugging)
+      const extensions = ['.aux', '.log', '.out'];
       for (const ext of extensions) {
         try {
           await fs.unlink(path.join(this.outputDir, `rechnung_${rechnungNummer}${ext}`));

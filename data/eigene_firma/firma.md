@@ -1,18 +1,22 @@
 ---
 name: Hinderling Internet Handwerk
-strasse: Musterstrasse 123
-plz: 8000
-ort: Zürich
+strasse: Werkhofstrasse 11
+plz: 2503
+ort: Biel
 land: Schweiz
-email: info@hinderling.ch
-telefon: +41 44 123 45 67
-website: https://hinderling.ch
+email: hallo@hinderling-internet-handwerk.ch
+telefon: 079/483'99'94
+website: https://www.hinderling-internet-handwerk.ch
 uid: CHE-123.456.789
-iban: CH93 0076 2011 6238 5295 7
+iban: CH60 8080 8005 5982 6682 1
 mwstSatz: 0
 mwstPflichtig: false
+accent-color: #bd00ff
+main-font: Lexend Exa
 ---
 
-# Hinderling Internet Handwerk
+**Slogan:**  
+Bruchsch ä nöii Website? - chum ufnes Kafi vrbi!
+pragmatisch, modern, unkompliziert
 
-Ihre Firma für professionelle Webentwicklung und digitale Lösungen.
+Di Internet-Handwärker "de Bieu"

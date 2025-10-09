@@ -258,8 +258,8 @@ function App() {
   const [modalLoading, setModalLoading] = useState(false);
   
   // Filter State
-  const [statusFilter, setStatusFilter] = useState('entwurf');
-  const [rechnungStatusFilter, setRechnungStatusFilter] = useState('entwurf');
+  const [statusFilter, setStatusFilter] = useState('alle');
+  const [rechnungStatusFilter, setRechnungStatusFilter] = useState('alle');
   
   // Filtered Offerten
   const filteredOfferten = React.useMemo(() => {

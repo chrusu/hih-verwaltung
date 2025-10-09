@@ -371,7 +371,7 @@ export class OffertenService {
     }
     
     // MwSt berechnen
-    const mwstSatz = offerte.mwstSatz || 7.7;
+    const mwstSatz = offerte.mwstSatz !== undefined ? offerte.mwstSatz : 7.7;
     const mwstBetrag = gesamtsumme * (mwstSatz / 100);
     const gesamtBrutto = gesamtsumme + mwstBetrag;
     

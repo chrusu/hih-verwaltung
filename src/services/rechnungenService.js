@@ -19,7 +19,7 @@ class Rechnung {
     this.faelligkeitsdatum = data.faelligkeitsdatum || this.berechneFaelligkeitsdatum(data.datum, 30);
     this.status = data.status || 'entwurf'; // entwurf, fertig, gesendet, bezahlt
     this.zahlungsbedingungen = data.zahlungsbedingungen || '30 Tage netto';
-    this.mwstSatz = data.mwstSatz || 7.7;
+    this.mwstSatz = data.mwstSatz !== undefined ? data.mwstSatz : 7.7;
     this.beschreibung = data.beschreibung || '';
     this.notizen = data.notizen || '';
     this.verzeichnis = data.verzeichnis || this.nummer;
@@ -103,7 +103,9 @@ ${this.notizen}
     });
 
     // Parse numerische Werte
-    if (data.mwstSatz) data.mwstSatz = parseFloat(data.mwstSatz);
+    if (data.mwstSatz !== undefined && data.mwstSatz !== null && data.mwstSatz !== '') {
+      data.mwstSatz = parseFloat(data.mwstSatz);
+    }
 
     // Verzeichnis aus Dateiname extrahieren
     if (filename) {

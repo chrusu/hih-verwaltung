@@ -129,7 +129,7 @@ export class Offerte {
     this.gültigBis = data.gültigBis || '';
     this.status = data.status || 'entwurf'; // entwurf, gesendet, angenommen, abgelehnt
     this.zahlungsbedingungen = data.zahlungsbedingungen || '30 Tage netto';
-    this.mwstSatz = data.mwstSatz || 7.7;
+    this.mwstSatz = data.mwstSatz !== undefined ? data.mwstSatz : 7.7;
     this.notizen = data.notizen || '';
     this.erstellt = data.erstellt || new Date().toISOString();
   }
