@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Haupteinstiegspunkt für HIH-Verwaltung
+ * Haupteinstiegspunkt für HIH-Verwaltung CLI
  */
 
-import { InteractiveCLI } from './src/interactive-cli.js';
-
-const cli = new InteractiveCLI();
-cli.start().catch(console.error);
+import './src/cli.js';
