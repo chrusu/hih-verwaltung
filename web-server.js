@@ -10,6 +10,9 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
 import multer from 'multer';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -20,23 +23,63 @@ import { RechnungenService } from './src/services/rechnungenService.js';
 import { PdfExportService } from './src/services/pdfExportService.js';
 import { FirmaService } from './src/services/firmaService.js';
 
+// Auth & User-Mandant importieren
+import authRoutes from './src/auth/routes.mjs';
+import { loadUserMandant } from './src/middleware/userMandant.mjs';
+import passportConfig from './src/auth/passport.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Services initialisieren
-const kundenService = new KundenService('./data');
-const offertenService = new OffertenService('./data');
-const rechnungenService = new RechnungenService('./data');
-const pdfExportService = new PdfExportService();
-const firmaService = new FirmaService('./data');
+// Services werden pro Request mit mandanten-spezifischem Pfad initialisiert
+// (Nicht mehr global)
 
 // === MIDDLEWARE ===
-app.use(cors());
+// CORS Configuration für Frontend
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Mandant-ID']
+}));
+
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session für Passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'hih-session-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Passport initialisieren
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Multer für File-Uploads
 const upload = multer({ 
@@ -69,9 +112,31 @@ app.use((req, res, next) => {
 
 // === API ROUTES ===
 
+// Auth Routes (ohne User-Mandant Middleware)
+app.use('/api/auth', authRoutes);
+console.log('✅ Auth Routes registered at /api/auth');
+
+// User-Mandant Middleware für alle anderen API-Routes
+app.use('/api', loadUserMandant);
+console.log('✅ User-Mandant Middleware aktiv für /api/*');
+
+// Hilfsfunktion: Services mit mandanten-spezifischem Pfad initialisieren
+app.use('/api', (req, res, next) => {
+    req.services = {
+        kunden: new KundenService(req.mandantPath),
+        offerten: new OffertenService(req.mandantPath),
+        rechnungen: new RechnungenService(req.mandantPath),
+        firma: new FirmaService(req.mandantPath),
+        pdf: new PdfExportService(req.mandantPath)
+    };
+    next();
+});
+
 // === Firma API ===
 app.get('/api/firma', async (req, res) => {
     try {
+        const firmaService = req.services.firma;
+        
         const firma = await firmaService.getFirma();
         
         // Logo & Unterschrift URLs hinzufügen
@@ -97,6 +162,9 @@ app.put('/api/firma', upload.fields([
     { name: 'signature', maxCount: 1 }
 ]), async (req, res) => {
     try {
+        // Service mit user-spezifischem Pfad initialisieren
+        const firmaService = req.services.firma;
+        
         // Firmendaten aus Body extrahieren
         const firmaData = { ...req.body };
         
@@ -139,6 +207,7 @@ app.put('/api/firma', upload.fields([
 // Firma Logo & Unterschrift abrufen
 app.get('/api/firma/logo/:filename', async (req, res) => {
     try {
+        const firmaService = req.services.firma;
         const logoPath = await firmaService.getLogoPath();
         if (logoPath) {
             res.sendFile(logoPath);
@@ -153,6 +222,7 @@ app.get('/api/firma/logo/:filename', async (req, res) => {
 
 app.get('/api/firma/signature/:filename', async (req, res) => {
     try {
+        const firmaService = req.services.firma;
         const signaturePath = await firmaService.getSignaturePath();
         if (signaturePath) {
             res.sendFile(signaturePath);
@@ -168,7 +238,7 @@ app.get('/api/firma/signature/:filename', async (req, res) => {
 // === Kunden API ===
 app.get('/api/kunden', async (req, res) => {
     try {
-        const kunden = await kundenService.listKunden();
+        const kunden = await req.services.kunden.listKunden();
         res.json({ success: true, data: kunden });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Kunden:', error);
@@ -178,7 +248,7 @@ app.get('/api/kunden', async (req, res) => {
 
 app.get('/api/kunden/:id', async (req, res) => {
     try {
-        const kunde = await kundenService.getKunde(req.params.id);
+        const kunde = await req.services.kunden.getKunde(req.params.id);
         if (kunde) {
             res.json({ success: true, data: kunde });
         } else {
@@ -192,17 +262,24 @@ app.get('/api/kunden/:id', async (req, res) => {
 
 app.post('/api/kunden', async (req, res) => {
     try {
-        const { name, email, telefon } = req.body;
+        const { name, email, telefon, typ, adresse, notizen } = req.body;
         
         if (!name?.trim()) {
             return res.status(400).json({ success: false, error: 'Name ist erforderlich' });
         }
         
-        const neuerKunde = await kundenService.createKunde({
+        const kundeData = {
             name: name.trim(),
             email: email?.trim() || '',
             telefon: telefon?.trim() || ''
-        });
+        };
+        
+        // Optionale Felder nur hinzufügen, wenn vorhanden
+        if (typ) kundeData.typ = typ;
+        if (adresse) kundeData.adresse = adresse;
+        if (notizen) kundeData.notizen = notizen;
+        
+        const neuerKunde = await req.services.kunden.createKunde(kundeData);
         
         console.log(`✅ Neuer Kunde erstellt: ${neuerKunde.name} (${neuerKunde.id})`);
         res.status(201).json({ success: true, data: neuerKunde });
@@ -214,17 +291,24 @@ app.post('/api/kunden', async (req, res) => {
 
 app.put('/api/kunden/:id', async (req, res) => {
     try {
-        const { name, email, telefon } = req.body;
+        const { name, email, telefon, typ, adresse, notizen } = req.body;
         
         if (!name?.trim()) {
             return res.status(400).json({ success: false, error: 'Name ist erforderlich' });
         }
         
-        const aktualisierterKunde = await kundenService.updateKunde(req.params.id, {
+        const updates = {
             name: name.trim(),
             email: email?.trim() || '',
             telefon: telefon?.trim() || ''
-        });
+        };
+        
+        // Optionale Felder nur hinzufügen, wenn vorhanden
+        if (typ) updates.typ = typ;
+        if (adresse) updates.adresse = adresse;
+        if (notizen !== undefined) updates.notizen = notizen;
+        
+        const aktualisierterKunde = await req.services.kunden.updateKunde(req.params.id, updates);
         
         console.log(`✅ Kunde aktualisiert: ${aktualisierterKunde.name} (${req.params.id})`);
         res.json({ success: true, data: aktualisierterKunde });
@@ -236,7 +320,7 @@ app.put('/api/kunden/:id', async (req, res) => {
 
 app.delete('/api/kunden/:id', async (req, res) => {
     try {
-        await kundenService.deleteKunde(req.params.id);
+        await req.services.kunden.deleteKunde(req.params.id);
         console.log(`✅ Kunde gelöscht: ${req.params.id}`);
         res.json({ success: true, message: 'Kunde erfolgreich gelöscht' });
     } catch (error) {
@@ -248,7 +332,7 @@ app.delete('/api/kunden/:id', async (req, res) => {
 // === Offerten API ===
 app.get('/api/offerten', async (req, res) => {
     try {
-        const offerten = await offertenService.listOfferten();
+        const offerten = await req.services.offerten.listOfferten();
         res.json({ success: true, data: offerten });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Offerten:', error);
@@ -258,7 +342,7 @@ app.get('/api/offerten', async (req, res) => {
 
 app.get('/api/offerten/:id', async (req, res) => {
     try {
-        const offerte = await offertenService.getOfferte(req.params.id);
+        const offerte = await req.services.offerten.getOfferte(req.params.id);
         if (offerte) {
             res.json({ success: true, data: offerte });
         } else {
@@ -304,7 +388,7 @@ app.post('/api/offerten', async (req, res) => {
             notizen: notizen?.trim() || ''
         };
         
-        const neueOfferte = await offertenService.createOfferte(offertenData);
+        const neueOfferte = await req.services.offerten.createOfferte(offertenData);
         
         console.log(`✅ Neue Offerte erstellt: ${neueOfferte.nummer} (${neueOfferte.id})`);
         res.status(201).json({ success: true, data: neueOfferte });
@@ -317,7 +401,7 @@ app.post('/api/offerten', async (req, res) => {
 app.put('/api/offerten/:id', async (req, res) => {
     try {
         const updates = req.body;
-        const aktualisierteOfferte = await offertenService.updateOfferte(req.params.id, updates);
+        const aktualisierteOfferte = await req.services.offerten.updateOfferte(req.params.id, updates);
         
         console.log(`✅ Offerte aktualisiert: ${aktualisierteOfferte.nummer} (${req.params.id})`);
         res.json({ success: true, data: aktualisierteOfferte });
@@ -329,7 +413,7 @@ app.put('/api/offerten/:id', async (req, res) => {
 
 app.delete('/api/offerten/:id', async (req, res) => {
     try {
-        await offertenService.deleteOfferte(req.params.id);
+        await req.services.offerten.deleteOfferte(req.params.id);
         console.log(`✅ Offerte gelöscht: ${req.params.id}`);
         res.json({ success: true, message: 'Offerte erfolgreich gelöscht' });
     } catch (error) {
@@ -341,12 +425,12 @@ app.delete('/api/offerten/:id', async (req, res) => {
 // === PDF Export API ===
 app.post('/api/export/pdf/:offerteId', async (req, res) => {
     try {
-        const offerte = await offertenService.getOfferte(req.params.offerteId);
+        const offerte = await req.services.offerten.getOfferte(req.params.offerteId);
         if (!offerte) {
             return res.status(404).json({ success: false, error: 'Offerte nicht gefunden' });
         }
         
-        const result = await pdfExportService.exportToPdf(offerte.nummer);
+        const result = await req.services.pdf.exportToPdf(offerte.nummer);
         
         console.log(`✅ PDF erstellt: ${result.pdfPath}`);
         res.json({ 
@@ -365,13 +449,13 @@ app.post('/api/export/pdf/:offerteId', async (req, res) => {
 // PDF direkt als Blob herunterladen (für Web Interface)
 app.get('/api/offerten/:id/pdf', async (req, res) => {
     try {
-        const offerte = await offertenService.getOfferte(req.params.id);
+        const offerte = await req.services.offerten.getOfferte(req.params.id);
         if (!offerte) {
             return res.status(404).json({ success: false, error: 'Offerte nicht gefunden' });
         }
         
         console.log(`🔄 Generiere PDF für Offerte ${offerte.nummer}...`);
-        const result = await pdfExportService.exportToPdf(offerte.nummer);
+        const result = await req.services.pdf.exportToPdf(offerte.nummer);
         
         // PDF-Datei lesen und als Blob senden
         const pdfBuffer = await fs.readFile(result.pdfPath);
@@ -391,7 +475,7 @@ app.get('/api/offerten/:id/pdf', async (req, res) => {
 
 app.get('/api/export/pdf/:offerteId/download', async (req, res) => {
     try {
-        const offerte = await offertenService.getOfferte(req.params.offerteId);
+        const offerte = await req.services.offerten.getOfferte(req.params.offerteId);
         if (!offerte) {
             return res.status(404).json({ success: false, error: 'Offerte nicht gefunden' });
         }
@@ -405,7 +489,7 @@ app.get('/api/export/pdf/:offerteId/download', async (req, res) => {
             await fs.access(pdfPath);
         } catch {
             // PDF existiert nicht, erstelle es
-            const result = await pdfExportService.exportToPdf(offerte.nummer);
+            const result = await req.services.pdf.exportToPdf(offerte.nummer);
             // Aktualisiere pdfPath mit dem generierten Pfad
             pdfPath = result.pdfPath;
         }
@@ -429,7 +513,7 @@ app.get('/api/export/pdf/:offerteId/download', async (req, res) => {
 // === Positionen API ===
 app.get('/api/offerten/:offerteId/positionen', async (req, res) => {
     try {
-        const positionen = await offertenService.getPositionen(req.params.offerteId);
+        const positionen = await req.services.offerten.getPositionen(req.params.offerteId);
         res.json({ success: true, data: positionen });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Positionen:', error);
@@ -454,7 +538,7 @@ app.post('/api/offerten/:offerteId/positionen', async (req, res) => {
             kategorie: kategorie?.trim() || ''
         };
         
-        const neuePosition = await offertenService.addPosition(req.params.offerteId, positionData);
+        const neuePosition = await req.services.offerten.addPosition(req.params.offerteId, positionData);
         
         console.log(`✅ Neue Position erstellt für Offerte ${req.params.offerteId}`);
         res.status(201).json({ success: true, data: neuePosition });
@@ -467,7 +551,7 @@ app.post('/api/offerten/:offerteId/positionen', async (req, res) => {
 app.put('/api/offerten/:offerteId/positionen/:positionId', async (req, res) => {
     try {
         const updates = req.body;
-        const aktualisiertePosition = await offertenService.updatePosition(req.params.offerteId, req.params.positionId, updates);
+        const aktualisiertePosition = await req.services.offerten.updatePosition(req.params.offerteId, req.params.positionId, updates);
         
         console.log(`✅ Position aktualisiert: ${req.params.positionId}`);
         res.json({ success: true, data: aktualisiertePosition });
@@ -480,7 +564,7 @@ app.put('/api/offerten/:offerteId/positionen/:positionId', async (req, res) => {
 app.delete('/api/offerten/:offerteId/positionen/:positionId', async (req, res) => {
     try {
         console.log(`🗑️ Lösche Position: ${req.params.positionId} aus Offerte: ${req.params.offerteId}`);
-        await offertenService.deletePosition(req.params.offerteId, req.params.positionId);
+        await req.services.offerten.deletePosition(req.params.offerteId, req.params.positionId);
         console.log(`✅ Position gelöscht: ${req.params.positionId}`);
         res.json({ success: true, message: 'Position erfolgreich gelöscht' });
     } catch (error) {
@@ -493,7 +577,7 @@ app.delete('/api/offerten/:offerteId/positionen/:positionId', async (req, res) =
 // === Rechnungen API ===
 app.get('/api/rechnungen', async (req, res) => {
     try {
-        const rechnungen = await rechnungenService.listRechnungen();
+        const rechnungen = await req.services.rechnungen.listRechnungen();
         res.json({ success: true, data: rechnungen });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Rechnungen:', error);
@@ -503,7 +587,7 @@ app.get('/api/rechnungen', async (req, res) => {
 
 app.get('/api/rechnungen/:id', async (req, res) => {
     try {
-        const rechnung = await rechnungenService.getRechnung(req.params.id);
+        const rechnung = await req.services.rechnungen.getRechnung(req.params.id);
         if (rechnung) {
             res.json({ success: true, data: rechnung });
         } else {
@@ -517,7 +601,7 @@ app.get('/api/rechnungen/:id', async (req, res) => {
 
 app.post('/api/rechnungen', async (req, res) => {
     try {
-        const neueRechnung = await rechnungenService.createRechnung(req.body);
+        const neueRechnung = await req.services.rechnungen.createRechnung(req.body);
         console.log(`✅ Neue Rechnung erstellt: ${neueRechnung.nummer}`);
         res.status(201).json({ success: true, data: neueRechnung });
     } catch (error) {
@@ -528,7 +612,7 @@ app.post('/api/rechnungen', async (req, res) => {
 
 app.post('/api/rechnungen/from-offerte/:offerteId', async (req, res) => {
     try {
-        const rechnung = await rechnungenService.createFromOfferte(req.params.offerteId);
+        const rechnung = await req.services.rechnungen.createFromOfferte(req.params.offerteId);
         console.log(`✅ Rechnung aus Offerte erstellt: ${rechnung.nummer}`);
         res.status(201).json({ success: true, data: rechnung });
     } catch (error) {
@@ -539,7 +623,7 @@ app.post('/api/rechnungen/from-offerte/:offerteId', async (req, res) => {
 
 app.put('/api/rechnungen/:id', async (req, res) => {
     try {
-        const updatedRechnung = await rechnungenService.updateRechnung(req.params.id, req.body);
+        const updatedRechnung = await req.services.rechnungen.updateRechnung(req.params.id, req.body);
         console.log(`✅ Rechnung aktualisiert: ${updatedRechnung.nummer} (${updatedRechnung.id})`);
         res.json({ success: true, data: updatedRechnung });
     } catch (error) {
@@ -550,7 +634,7 @@ app.put('/api/rechnungen/:id', async (req, res) => {
 
 app.delete('/api/rechnungen/:id', async (req, res) => {
     try {
-        await rechnungenService.deleteRechnung(req.params.id);
+        await req.services.rechnungen.deleteRechnung(req.params.id);
         console.log(`✅ Rechnung gelöscht: ${req.params.id}`);
         res.json({ success: true });
     } catch (error) {
@@ -561,7 +645,7 @@ app.delete('/api/rechnungen/:id', async (req, res) => {
 
 app.get('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
     try {
-        const positionen = await rechnungenService.getPositionen(req.params.rechnungId);
+        const positionen = await req.services.rechnungen.getPositionen(req.params.rechnungId);
         res.json({ success: true, data: positionen });
     } catch (error) {
         console.error('❌ Fehler beim Laden der Positionen:', error);
@@ -571,7 +655,7 @@ app.get('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
 
 app.post('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
     try {
-        const position = await rechnungenService.addPosition(req.params.rechnungId, req.body);
+        const position = await req.services.rechnungen.addPosition(req.params.rechnungId, req.body);
         console.log(`✅ Position zu Rechnung hinzugefügt`);
         res.status(201).json({ success: true, data: position });
     } catch (error) {
@@ -582,7 +666,7 @@ app.post('/api/rechnungen/:rechnungId/positionen', async (req, res) => {
 
 app.put('/api/rechnungen/:rechnungId/positionen/:positionId', async (req, res) => {
     try {
-        const position = await rechnungenService.updatePosition(req.params.rechnungId, req.params.positionId, req.body);
+        const position = await req.services.rechnungen.updatePosition(req.params.rechnungId, req.params.positionId, req.body);
         console.log(`✅ Position aktualisiert`);
         res.json({ success: true, data: position });
     } catch (error) {
@@ -593,7 +677,7 @@ app.put('/api/rechnungen/:rechnungId/positionen/:positionId', async (req, res) =
 
 app.delete('/api/rechnungen/:rechnungId/positionen/:positionId', async (req, res) => {
     try {
-        await rechnungenService.deletePosition(req.params.rechnungId, req.params.positionId);
+        await req.services.rechnungen.deletePosition(req.params.rechnungId, req.params.positionId);
         console.log(`✅ Position gelöscht`);
         res.json({ success: true });
     } catch (error) {
@@ -607,13 +691,13 @@ app.get('/api/rechnungen/:id/pdf', async (req, res) => {
     try {
         console.log(`🔄 Generiere PDF für Rechnung ${req.params.id}...`);
         
-        const rechnung = await rechnungenService.getRechnung(req.params.id);
+        const rechnung = await req.services.rechnungen.getRechnung(req.params.id);
         if (!rechnung) {
             return res.status(404).json({ success: false, error: 'Rechnung nicht gefunden' });
         }
 
         // PDF mit QR-Rechnung generieren
-        const result = await pdfExportService.exportRechnungPdf(rechnung.nummer);
+        const result = await req.services.pdf.exportRechnungPdf(rechnung.nummer);
 
         if (!result.success) {
             return res.status(500).json({ success: false, error: 'PDF-Generierung fehlgeschlagen' });
@@ -642,8 +726,8 @@ app.get('/api/rechnungen/:id/pdf', async (req, res) => {
 // === Dashboard API ===
 app.get('/api/dashboard', async (req, res) => {
     try {
-        const kunden = await kundenService.listKunden();
-        const offerten = await offertenService.listOfferten();
+        const kunden = await req.services.kunden.listKunden();
+        const offerten = await req.services.offerten.listOfferten();
         
         const dashboard = {
             kundenCount: kunden.length,

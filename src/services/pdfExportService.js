@@ -190,8 +190,8 @@ export class PdfExportService {
     const gueltigBisFormatted = formatDate(offerte.gültigBis);
     const datumFormatted = formatDate(offerte.datum);
 
-    // Logo-Pfad (relativ zum Ausgabeverzeichnis)
-    const logoPath = path.relative(this.outputDir, path.join(this.templateDir, 'Logo_Print.png'));
+    // Logo-Pfad (absoluter Pfad für LaTeX)
+    const logoPath = path.join(this.templateDir, 'Logo_Print.png');
 
     return `% LaTeX-Template für Offerte ${offerte.nummer}
 \\documentclass[11pt]{article}
@@ -272,7 +272,7 @@ Wir freuen uns auf Ihre Rückmeldung und danken Ihnen für Ihr Vertrauen.
 \\noindent
 \\begin{minipage}{10cm}
 % Unterschrift-Bild
-\\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
+\\includegraphics[height=1.5cm]{${path.join(this.templateDir, 'Unterschrift2.png')}}\\\\[0.5em]
 % E-Mail-Signatur
 \\textbf{Tobias Hinderling}\\\\
 Internet Handwerk\\\\[0.5em]
@@ -467,7 +467,7 @@ pragmatisch, modern, unkompliziert\\\\[0.5em]
       firmendaten: firmendaten,
       kundenAdresse: kundenAdresse,
       positionenLatex: positionenLatex,
-      qrCodePath: path.relative(this.outputDir, qrCodePath)
+      qrCodePath: qrCodePath
     });
 
     return latexContent;
@@ -545,7 +545,7 @@ pragmatisch, modern, unkompliziert\\\\[0.5em]
     const datumFormatted = formatDate(rechnung.datum);
     const faelligkeitsdatumFormatted = formatDate(rechnung.faelligkeitsdatum);
 
-    const logoPath = path.relative(this.outputDir, path.join(this.templateDir, 'Logo_Print.png'));
+    const logoPath = path.join(this.templateDir, 'Logo_Print.png');
 
     return `% LaTeX-Template für Rechnung ${rechnung.nummer}
 \\documentclass[11pt]{article}
@@ -650,7 +650,7 @@ Vielen Dank für Ihr Vertrauen und die angenehme Zusammenarbeit.
 % Signatur
 \\noindent
 \\begin{minipage}{10cm}
-\\includegraphics[height=1.5cm]{${path.relative(this.outputDir, path.join(this.templateDir, 'Unterschrift2.png'))}}\\\\[0.5em]
+\\includegraphics[height=1.5cm]{${path.join(this.templateDir, 'Unterschrift2.png')}}\\\\[0.5em]
 \\textbf{Tobias Hinderling}\\\\
 Internet Handwerk\\\\[0.5em]
 Bruchsch ä nöii Website?\\\\[0.3em]

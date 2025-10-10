@@ -144,10 +144,15 @@ export class KundenService {
       throw new Error(`Kunde '${kundeIdentifier}' nicht gefunden`);
     }
 
-    // Daten aktualisieren
+    // Daten aktualisieren mit korrektem Merge für verschachtelte Objekte
     const updatedKunde = new Kunde({
       ...kunde,
       ...updates,
+      // Adresse korrekt mergen (nicht überschreiben!)
+      adresse: updates.adresse ? {
+        ...kunde.adresse,
+        ...updates.adresse
+      } : kunde.adresse,
       id: kunde.id, // ID nie überschreiben
       verzeichnis: kunde.verzeichnis, // Verzeichnis nie überschreiben
       erstellt: kunde.erstellt // Erstellungsdatum nie überschreiben

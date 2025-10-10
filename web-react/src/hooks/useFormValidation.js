@@ -18,13 +18,28 @@ export const useFormValidation = (initialValues = {}, validationSchema = null) =
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /**
-   * Einzelnes Feld ändern
+   * Einzelnes Feld ändern (unterstützt verschachtelte Pfade wie "adresse.strasse")
    */
   const handleChange = useCallback((field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      // Wenn Feld einen Punkt enthält, verschachtelte Struktur aktualisieren
+      if (field.includes('.')) {
+        const [parent, child] = field.split('.');
+        return {
+          ...prev,
+          [parent]: {
+            ...prev[parent],
+            [child]: value
+          }
+        };
+      }
+      
+      // Einfaches Feld
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
     
     // Clear error when user starts typing
     if (errors[field]) {

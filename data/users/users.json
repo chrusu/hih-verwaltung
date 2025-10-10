@@ -1,0 +1,94 @@
+{
+  "users": [
+    {
+      "id": "usr_mryvv8r7qrp5v0vs3pm0gi",
+      "email": "test@example.com",
+      "name": "Test User",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-09T14:16:01.529Z"
+        }
+      ],
+      "created": "2025-10-09T14:16:01.459Z",
+      "lastLogin": "2025-10-09T14:16:22.645Z",
+      "passwordHash": "$2b$10$iwrofKcsF7WtnQSnRJLu/.6vSM1gwrwXFftj8.JK.YR9SkrzJFRJ6"
+    },
+    {
+      "id": "usr_4imuh3ifjrvfeww31acdp",
+      "email": "sarah@hih-test.com",
+      "name": "Sarah Muster",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-09T15:02:59.724Z"
+        }
+      ],
+      "created": "2025-10-09T15:02:59.638Z",
+      "lastLogin": "2025-10-09T15:02:59.638Z",
+      "passwordHash": "$2b$10$p.gSNmI/eVEUgAfelUmj1uRucB.Lvadrwc3RU/KYKaJgE.v9n.rP."
+    },
+    {
+      "id": "usr_otb6jonvc5pzwnzbpff1rj",
+      "email": "mandant@test.com",
+      "name": "Test User Mandant",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-09T16:18:28.288Z"
+        }
+      ],
+      "created": "2025-10-09T16:18:28.181Z",
+      "lastLogin": "2025-10-09T16:18:28.181Z",
+      "passwordHash": "$2b$10$5jbI0Zm8Fi.icYLCIk8kQuGpnt5iSPc343q9taHiPOdJUT0ElNALW"
+    },
+    {
+      "id": "usr_niemzxaukeh7n5uhyi6jgp",
+      "email": "neuuser@test.com",
+      "name": "Test User Neu",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-09T17:06:12.121Z"
+        }
+      ],
+      "created": "2025-10-09T17:06:12.045Z",
+      "lastLogin": "2025-10-09T17:06:12.045Z",
+      "passwordHash": "$2b$10$SP9Z6EqN5.BEBznhzYYDUe5tRH1tkmdAiK5d6jdCWiDz7NvZVUwhW"
+    },
+    {
+      "id": "usr_ip3qbw42lw3dgs8swjw",
+      "email": "migration@test.com",
+      "name": "Test Migration",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-09T17:09:20.761Z"
+        }
+      ],
+      "created": "2025-10-09T17:09:20.663Z",
+      "lastLogin": "2025-10-09T17:55:26.730Z",
+      "passwordHash": "$2b$10$V3j9wP2vkwVccqD5vdQtNuTaBw1WcRXLmAfciFK3ayRmxfudPvJGe"
+    },
+    {
+      "id": "usr_rqe2c9ilvuj8rg2brbzqdm",
+      "email": "hallo@hinderling-internet-handwerk.ch",
+      "name": "HIH",
+      "avatar": null,
+      "providers": [
+        {
+          "type": "local",
+          "created": "2025-10-10T09:36:36.722Z"
+        }
+      ],
+      "created": "2025-10-10T09:36:36.610Z",
+      "lastLogin": "2025-10-10T09:36:36.610Z",
+      "passwordHash": "$2b$10$hcD9hbTejKgAA85Rr2IiJ.rg0XlEGLdP5hrD5U3GbbaHm6sN3HbHW"
+    }
+  ]
+}

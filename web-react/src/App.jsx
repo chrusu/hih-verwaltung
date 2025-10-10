@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { theme } from './themes/terminal';
 
+// Auth Components
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './hooks/useAuth';
+import LoginScreen from './components/screens/LoginScreen';
+import RegisterScreen from './components/screens/RegisterScreen';
+
 // Layout Components
 import TerminalContainer from './components/layout/TerminalContainer';
 import TitleBar from './components/layout/TitleBar';
@@ -545,6 +551,31 @@ function App() {
     else if (currentScreen === 'offers') currentData = filteredOfferten;
     else if (currentScreen === 'invoices') currentData = filteredRechnungen;
     
+    switch (event.key) {
+      case 'n':
+      case 'N':
+        event.preventDefault();
+        handleContextAction('new');
+        break;
+        
+      case 'e':
+      case 'E':
+        event.preventDefault();
+        if (currentData && currentData.length > 0) {
+          handleContextAction('edit');
+        }
+        break;
+        
+      case 'd':
+      case 'D':
+        event.preventDefault();
+        if (currentData && currentData.length > 0) {
+          handleContextAction('delete');
+        }
+        break;
+    }
+    
+    // Navigation und Enter nur bei vorhandenen Daten
     if (!currentData || currentData.length === 0) return;
 
     switch (event.key) {
@@ -561,24 +592,6 @@ function App() {
       case 'Enter':
         event.preventDefault();
         handleContextAction('open');
-        break;
-        
-      case 'n':
-      case 'N':
-        event.preventDefault();
-        handleContextAction('new');
-        break;
-        
-      case 'e':
-      case 'E':
-        event.preventDefault();
-        handleContextAction('edit');
-        break;
-        
-      case 'd':
-      case 'D':
-        event.preventDefault();
-        handleContextAction('delete');
         break;
         
       case 'p':
@@ -991,4 +1004,59 @@ function App() {
   );
 }
 
-export default App;
+// Main App Component
+const MainApp = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+
+  // Show loading spinner während Auth Check
+  if (loading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <GlobalStyle />
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          background: theme.colors.bgPrimary,
+          color: theme.colors.accentGreen,
+          fontFamily: theme.fonts.mono
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', marginBottom: '20px' }}>⣾⣽⣻⢿⡿⣟⣯⣷</div>
+            <div>HIH-Verwaltung wird geladen...</div>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  // Show Login/Register wenn nicht authentifiziert
+  if (!isAuthenticated) {
+    return (
+      <ThemeProvider theme={theme}>
+        <GlobalStyle />
+        {showRegister ? (
+          <RegisterScreen onSwitchToLogin={() => setShowRegister(false)} />
+        ) : (
+          <LoginScreen onSwitchToRegister={() => setShowRegister(true)} />
+        )}
+      </ThemeProvider>
+    );
+  }
+
+  // Show Main App wenn authentifiziert
+  return <App />;
+};
+
+// App mit AuthProvider wrappen
+const AppWithAuth = () => {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+};
+
+export default AppWithAuth;

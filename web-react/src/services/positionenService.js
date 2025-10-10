@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../utils/api';
 
 class PositionenService {
   // Alle Positionen einer Offerte laden
